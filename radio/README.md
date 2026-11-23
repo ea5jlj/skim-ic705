@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP` and
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `9c75b3a0a89eb90bb8b8d25782e00a6504cff14e46391ca18114b40699204424` |
+| `app/SKIM.APP` | `82fd975aae05a23f28a83b5f0a2f370bef84eba93486adf6110d0d7a2899f73a` |
 
 1. Copy `SKIM.APP` and `SKIM.CFG` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are.
 2. Set your **CW PITCH** in `SKIM.CFG` (`pitch=600`). The app cannot read it from the radio, and it is needed to turn each station's audio tone into its real frequency. 600 Hz is the IC-705 factory default. To see yours, press the **MULTI** knob in CW mode and look at **CW PITCH**, then put the same value here. If it does not match, every frequency shown will be off by the difference (for example 200 Hz off if your pitch is 800 Hz). If you use CW-R, also set `cwr=1`.
@@ -84,10 +84,12 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 - **Operators taking turns:** in a QSO or a contest run, two or more operators share one frequency, each with its own speed, weighting and spacing. Each channel keeps up to 3 timing profiles: when the level jumps or after a long silence, SKIM holds the first elements back and picks the operator that matches (level and speed), keeps the current timing if it still fits, or starts a new one.
 - **Spaces between words:** SKIM measures each station's own gaps and splits them into element, letter and word gaps. When letter and word gaps are clearly apart, the word threshold goes between them. This handles keyers with heavy weighting or short word spaces (which would otherwise glue words together: "CQCQDE…") and slow or Farnsworth operators (which would otherwise be split letter by letter). When the gaps are not clear it uses the standard 5 units. It takes about 10 letters to adapt.
 - **Word spacing fix (`words=1`):** what timing cannot settle (several operators alternating on one frequency, weak signals) is fixed on the finished line with a small CW vocabulary (CQ, DE, TEST, TU, 73, 5NN, RST, QTH, NAME, TNX…) and the callsign rules:
-  - glued words are split only when every piece is a known word, a report, a number or a callsign, and there is a callsign or report among them, or all pieces are typical CW words: `CQCQDEIK4PLU` → `CQ CQ DE IK4PLU`, `GM5NN73TUEE` → `GM 5NN 73 TU EE`;
+  - glued words are split only when every piece is a known word, a report, a number or a callsign, and there is a callsign or report among them, or enough typical CW words: `CQCQDEIK4PLU` → `CQ CQ DE IK4PLU`, `GM5NN73TUEE` → `GM 5NN 73 TU EE`, `TNXFERCALL` → `TNX FER CALL`, `CUAGNSN` → `CU AGN SN`;
+  - `=` and `+` always stand apart: `TRIESTE=HW?` → `TRIESTE = HW?`;
+  - right after `DR`, `NAME` or `QTH` (or `NAME IS`, `QTH IS`, `OP IS`, or `DR OM` after a greeting), one unknown word may follow, such as a name or a place: `GEDRALFON` → `GE DR ALFON`, `GEDROMALFONSO` → `GE DR OM ALFONSO`, `QTHISCADIZ` → `QTH IS CADIZ`;
   - a callsign cut in two is joined: `EA5 RJ` → `EA5RJ`;
   - callsigns already identified on the band, or repeated in the line, are preferred (`OS5ZK` next to `OS5Z` → `OS5Z K`);
-  - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `OKFRANCIS`) are left alone. The callsign detection reads the fixed line.
+  - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `HIDE`, `OKFRANCIS`) are left alone: over the 234,000 words of an English dictionary, 32 are split. The callsign detection reads the fixed line.
 
 ## Logs
 

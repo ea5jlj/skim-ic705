@@ -2,6 +2,19 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-23 — word spacing in ragchew QSOs
+
+### Improvements
+
+- **Word spacing in ragchew QSOs.** In a real QSO many glued words stayed glued. Three causes, all fixed:
+  - a token with `=` (BT) or `+` was never split. `=` and `+` now always stand apart: `TNXFERRPRT=URRSTALSO5NN5NNQSB=` → `TNX FER RPRT = UR RST ALSO 5NN 5NN QSB =`, `TRIESTE=HW?` → `TRIESTE = HW?`;
+  - without a callsign or report in the token, no weak word (FER, CALL, DR…) was allowed, so `TNXFERCALL` stayed glued. Weak words are now allowed next to strong ones in tokens of 6+ letters: `TNX FER CALL`, `FB TNX CALL`;
+  - missing words: `CU`, `SN`, `HPE`, `RPRT`, `ALSO`, `MNI`, `GUD`, `CONDX` (`CUAGNSN` → `CU AGN SN`). `AR` was removed (`GEAR` was split).
+- **Names and places.** Right after `DR`, `NAME` or `QTH` (or `NAME IS`, `QTH IS`, `OP IS`, or `DR OM` after a greeting such as GE or TNX), one unknown word may follow: `GEDRALFON` → `GE DR ALFON`, `GEDROMALFONSO` → `GE DR OM ALFONSO`, `QTHISCADIZ` → `QTH IS CADIZ`. `OM` alone does not count, or `GEOMETRY` would split.
+- **`VY7373` → `VY 73 73`** (four-digit numbers cost more than two 73s).
+
+Checked on all the radio logs (28 lines improve, no letter changed) and on a 234,000-word English dictionary: 32 plain words are split, against 18 before (all rare: GUDGEON, GADROON, TESTES…); TOUR, DETOUR, HIDE, GLAND, FORGE stay whole.
+
 ## 2026-11-23 — contest, CPU and dial update
 
 ### Improvements

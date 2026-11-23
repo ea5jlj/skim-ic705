@@ -21,11 +21,13 @@ static const struct { const char *w; char strong; } vocab[] = {
     {"HIHI",S}, {"GL",S}, {"BK",S}, {"KN",S}, {"SK",S}, {"FB",S}, {"GM",S}, {"GA",S},
     {"GE",S}, {"GN",S}, {"WX",S}, {"PWR",S}, {"ANT",S}, {"RIG",S}, {"UR",S}, {"HR",S},
     {"HW",S}, {"VY",S}, {"OM",S}, {"YL",S}, {"XYL",S}, {"DX",S}, {"NR",S}, {"TNK",S},
-    {"EE",S}, {"ABT",S}, {"RPT",S},
-    {"ES",W}, {"FER",W}, {"OP",W}, {"AR",W}, {"TEE",W}, {"HI",W}, {"OK",W},
+    {"EE",S}, {"ABT",S}, {"RPT",S}, {"RPRT",S}, {"CU",S}, {"HPE",S}, {"MNI",S},
+    {"CONDX",S}, {"GUD",S},
+    {"ES",W}, {"FER",W}, {"OP",W}, {"TEE",W}, {"HI",W}, {"OK",W},
     {"INFO",W}, {"DR",W}, {"GD",W}, {"BEST",W}, {"CALL",W},
     {"NW",W}, {"NIL",W}, {"ALL",W}, {"WATTS",W}, {"WATT",W}, {"MY",W}, {"IS",W},
     {"THE",W}, {"AND",W}, {"FOR",W}, {"TO",W}, {"IN",W}, {"ON",W}, {"SUN",W},
+    {"SN",W}, {"ALSO",W},
     {"K",W}, {"R",W},
     {0,0}
 };
@@ -105,7 +107,7 @@ static float piece_cost(const char *p, int n, const char *const *known, int nk, 
         return 1.2f + (sl >= 4 ? 0.3f : 0.0f) + (nd > 1 ? 1.0f : 0.0f)
                     + (known_find(p, n - 1, known, nk) ? 1.5f : 0.0f);   /* EA5JLJK next to EA5JLJ */
     }
-    if (is_number(p, n)) return 1.4f;
+    if (is_number(p, n)) return n == 4 ? 2.5f : 1.4f;   /* "7373" is 73 73 */
     /* stray dots stuck to a word (IIICQDX): a piece of its own, so the
      * noise filter can drop it; it does not count as evidence */
     if (n >= 2 && n <= 4) {
@@ -114,6 +116,20 @@ static float piece_cost(const char *p, int n, const char *const *known, int nk, 
         if (dots) { *strong = -1; return 1.0f; }
     }
     return -1.0f;
+}
+
+/* short English words: they also hide inside plain words ("TOUR" = TO UR) */
+static int is_english(const char *p, int n)
+{
+    static const char *const e[] = { "TO", "IS", "IN", "ON", "MY", "THE", "AND", "FOR", "ALL", 0 };
+    for (int i = 0; e[i]; i++) if (same(p, n, e[i])) return 1;
+    return 0;
+}
+
+/* words a name or a place follows (not OM or OP: GE+OM+ETRY is GEOMETRY) */
+static int intro(const char *p, int n)
+{
+    return same(p, n, "DR") || same(p, n, "NAME") || same(p, n, "QTH");
 }
 
 /* a token that stands on its own and is left as it is */
@@ -137,17 +153,25 @@ static int split(const char *p, int n, char *o, const char *const *known, int nk
     float bc[TOKMAX + 1][2];
     int from[TOKMAX + 1][2], fs[TOKMAX + 1][2], top[TOKMAX + 1][2], weak[TOKMAX + 1][2];
     int kn[TOKMAX + 1][2], pcs[TOKMAX + 1][2];
+    int strg[TOKMAX + 1][2], one[TOKMAX + 1][2], unk[TOKMAX + 1][2], eng[TOKMAX + 1][2];
     /* never cut inside a report: "GM5NN73TUEE" is not "GM5N N73TUEE" */
     char nocut[TOKMAX + 1] = {0};
     for (int i = 0; i + 2 < n; i++)
         if (is_report(p + i, 3)) nocut[i + 1] = nocut[i + 2] = 1;
     for (int i = 0; i <= n; i++) bc[i][0] = bc[i][1] = -1;
     bc[0][0] = 0; top[0][0] = weak[0][0] = kn[0][0] = pcs[0][0] = 0; from[0][0] = -1;
+    strg[0][0] = one[0][0] = unk[0][0] = eng[0][0] = 0;
     for (int i = 1; i <= n; i++) {
         for (int j = (i > 12 ? i - 12 : 0); j < i; j++) {
             if (as_call && j == 0 && i == n) continue;      /* not the whole token as is */
             int st;
             float c = piece_cost(p + j, i - j, known, nk, &st);
+            if (c < 0 && j > 0 && i == n && i - j >= 3 && i - j <= 12) {
+                /* one unknown word at the end (a name, a QTH): "GEDRALFON" → "GE DR ALFON" */
+                int al = 1;
+                for (int k = j; k < i; k++) if (!is_al(p[k])) al = 0;
+                if (al) { c = 1.0f * (i - j); st = -2; }   /* by length: known words cover as much as they can */
+            }
             if (c < 0 || nocut[j] || nocut[i]) continue;
             int m = i - j;
             int dc = m == 2 && ((p[j] == 'D' && p[j + 1] == 'E') || (p[j] == 'C' && p[j + 1] == 'Q'));
@@ -160,16 +184,43 @@ static int split(const char *p, int n, char *o, const char *const *known, int nk
                     top[i][dc] = st > top[j][s0] ? st : top[j][s0];
                     weak[i][dc] = weak[j][s0] + (st == 0);
                     kn[i][dc] = kn[j][s0] | known_find(p + j, m, known, nk);
+                    strg[i][dc] = strg[j][s0] + (st == 1);
+                    one[i][dc] = one[j][s0] | (m == 1 && st >= 0);
+                    unk[i][dc] = unk[j][s0] + (st == -2);
+                    /* "NAME IS", "QTH IS", "OP IS": CW phrases, not English */
+                    int pj = from[j][s0];
+                    int cw_is = same(p + j, m, "IS") && pj >= 0 &&
+                                (intro(p + pj, j - pj) || same(p + pj, j - pj, "OP"));
+                    eng[i][dc] = eng[j][s0] + (st == 0 && is_english(p + j, m) && !cw_is);
                 }
             }
         }
     }
     int e = (bc[n][1] >= 0 && (bc[n][0] < 0 || bc[n][1] < bc[n][0])) ? 1 : 0;
     if (bc[n][e] < 0 || pcs[n][e] < 2) return 0;
-    if (top[n][e] < 2 && weak[n][e] > 0) return 0;
+    /* without a callsign or report, weak words (FER, CALL, DR…) need strong
+     * ones next to them, no one-letter pieces, a token of 6+ letters and fewer
+     * short English words than strong ones, so plain language stays whole:
+     * "TNXFERCALL" splits; "TOGETHER", "HIDE", "DETOUR", "FORGE" do not */
+    if (top[n][e] < 2 && weak[n][e] > 0 &&
+        (strg[n][e] < 1 || one[n][e] || weak[n][e] > 2 * strg[n][e] || n < 6 ||
+         eng[n][e] >= strg[n][e] || (eng[n][e] && n <= 6))) return 0;
+    /* an unknown tail only after two known words, one of them strong */
+    if (unk[n][e] && (pcs[n][e] - unk[n][e] < 2 || (strg[n][e] < 1 && top[n][e] < 2))) return 0;
     if (as_call && !kn[n][e]) return 0;
     int cut[TOKMAX + 1], nc = 0;
     for (int i = n, st = e; i > 0; ) { cut[nc++] = i; int j = from[i][st]; st = fs[i][st]; i = j; }
+    /* the tail (a name or a place) only right after the words that introduce
+     * one: "GE DR ALFON", "GE DR OM ALFONSO", "NAME IS PABLO", "QTH IS CADIZ" */
+    if (unk[n][e]) {
+        int a1 = cut[2], b1 = cut[1];                  /* the piece before the tail */
+        int a2 = nc > 3 ? cut[3] : 0;                  /* and the one before that */
+        int a3 = nc > 4 ? cut[4] : 0;                  /* (cut[] does not hold the start, 0) */
+        if (!intro(p + a1, b1 - a1) &&
+            !(same(p + a1, b1 - a1, "IS") && (intro(p + a2, a1 - a2) || same(p + a2, a1 - a2, "OP"))) &&
+            !(same(p + a1, b1 - a1, "OM") && same(p + a2, a1 - a2, "DR") && a2 > 0 &&
+              vocab_find(p + a3, a2 - a3) == 1)) return 0;   /* "GE DR OM ALFONSO", not DROMEDARY */
+    }
     int on = 0, a = 0;
     for (int c = nc - 1; c >= 0; c--) {
         if (on) o[on++] = ' ';
@@ -214,6 +265,10 @@ static int should_join(const char *a, int na, const char *b, int nb, const char 
     return prefix_digits(a, na) && letters_only(b, nb) && vocab_find(b, nb) < 0 && cs_is_call(t);
 }
 
+/* '=' (BT) and '+' (AR) separate words even when the sender runs them in:
+ * "TNXFERCALL=" → "TNXFERCALL" "=" */
+static int is_sep(char c) { return c == '=' || c == '+'; }
+
 static int tokens(const char *in, const char **ws, int *wn, int max)
 {
     int n = 0;
@@ -221,7 +276,8 @@ static int tokens(const char *in, const char **ws, int *wn, int max)
         while (*in == ' ') in++;
         if (!*in) break;
         ws[n] = in;
-        while (*in && *in != ' ') in++;
+        if (is_sep(*in)) in++;
+        else while (*in && *in != ' ' && !is_sep(*in)) in++;
         wn[n] = (int)(in - ws[n]);
         n++;
     }
@@ -243,8 +299,10 @@ static int pass(const char *in, char *out, int max, const char *const *known, in
             p = joined; m = wn[i] + wn[i + 1];
             i++;
         }
-        int sm = split(p, m, buf, known, nk, next);
-        if (sm) { p = buf; m = sm; }
+        int q = 0;                                   /* "HW?", "QRL??": split what comes before */
+        while (q < m && p[m - 1 - q] == '?') q++;
+        int sm = split(p, m - q, buf, known, nk, next);
+        if (sm) { for (int k = 0; k < q; k++) buf[sm++] = '?'; p = buf; m = sm; }
         if (on && on < max - 1) out[on++] = ' ';
         for (int k = 0; k < m && on < max - 1; k++) out[on++] = p[k];
     }

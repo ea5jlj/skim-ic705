@@ -6,10 +6,13 @@
  *   - splits glued tokens: "CQCQDEIK4PLU" → "CQ CQ DE IK4PLU",
  *     "GM5NN73TUEE" → "GM 5NN 73 TU EE";
  *   - joins a callsign cut in two: "EA5 RJ" → "EA5RJ".
- * It only moves spaces: it never changes, adds or removes a letter. A token
- * is split only when every piece is a known word, a report, a number or a
- * callsign, and at least one piece is a strong one (CQ, DE, TU, 73, a report
- * or a callsign), so plain-language words are left alone.
+ * It only moves spaces: it never changes, adds or removes a letter. '=' and
+ * '+' always stand apart ("TNXFERCALL=" → "TNX FER CALL ="). A token is split
+ * only when every piece is a known word, a report, a number or a callsign
+ * (or, right after DR, NAME, QTH or GE DR OM, one unknown word: "GEDRALFON"
+ * → "GE DR ALFON"). Without a callsign or report, weak words (FER, CALL, DR…)
+ * need strong ones (TNX, CU, GE…) in a token of 6+ letters, so plain-language
+ * words (TOUR, HIDE, GLAND) are left alone.
  * Freestanding C, no dynamic memory.
  */
 #ifndef WORDS_H
