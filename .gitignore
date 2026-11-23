@@ -1,0 +1,20 @@
+# build output
+build/
+radio/build/
+
+# audio and local test data (never committed)
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.ogg
+*.pcm
+audio/
+refs/
+
+# logs copied from the radio
+*.LOG
+
+# macOS
+.DS_Store
+._*
