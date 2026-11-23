@@ -10,7 +10,7 @@
  *     TU (contests), or repeated ("DL1ABC DL1ABC");
  *   - evidence against: before DE or before a report (5NN, 599…), because
  *     then it is the station being called, not the one transmitting.
- * It also tracks whether the station is calling CQ and who it is in a QSO
+ * It also tracks whether the station is calling CQ (or TEST, in contests) and who it is in a QSO
  * with (the other station: the one before DE or before a report).
  * Freestanding C, no dynamic memory. Fed with the text as it is decoded.
  */

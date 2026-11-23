@@ -4,6 +4,7 @@
  * usage: cwgen out.wav [options] [-t "TEXT"]
  *   -w wpm  -f tone  -s snr_db  -j jitter  -r dash_ratio  -q qsb_db  -p qsb_period
  *   -d drift_hz  -m qrm_tone  -M qrm_db  -S seed  -L letter_gap  -W word_gap (units)
+ *   -c ms   first element of each transmission cut short (slow TX switching)
  */
 #include "synth.h"
 #include "wav.h"
@@ -13,7 +14,7 @@
 
 int main(int argc, char **argv)
 {
-    if (argc < 2) { fprintf(stderr, "usage: cwgen out.wav [-w wpm] [-f Hz] [-s dB] [-j jit] [-r ratio] [-q dB] [-p s] [-d Hz] [-m Hz] [-M dB] [-S seed] [-L units] [-W units] [-t text]\n"); return 1; }
+    if (argc < 2) { fprintf(stderr, "usage: cwgen out.wav [-w wpm] [-f Hz] [-s dB] [-j jit] [-r ratio] [-q dB] [-p s] [-d Hz] [-m Hz] [-M dB] [-S seed] [-L units] [-W units] [-c ms] [-t text]\n"); return 1; }
     synth_cfg_t c; synth_default(&c);
     const char *text = NULL;
     for (int i = 2; i + 1 < argc; i += 2) {
@@ -31,6 +32,7 @@ int main(int argc, char **argv)
         else if (!strcmp(o, "-S")) c.seed = atoi(v);
         else if (!strcmp(o, "-L")) c.letter_gap = atof(v);
         else if (!strcmp(o, "-W")) c.word_gap = atof(v);
+        else if (!strcmp(o, "-c")) c.clip_ms = atof(v);
         else if (!strcmp(o, "-t")) text = v;
     }
     char buf[512];

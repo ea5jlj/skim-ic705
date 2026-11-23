@@ -103,14 +103,15 @@ Experimental software, receive only. Use entirely at your own risk; no warranty 
 | `src/callsign.c/.h` | Callsign, CQ and QSO-partner detection from decoded text. |
 | `src/words.c/.h` | Word-spacing fix with a small CW vocabulary and the callsign rules: splits glued words (`CQCQDEEA4XYZ`), joins split callsigns (`EA4 XYZ`). Only moves spaces. |
 | `radio/` | The SKIM ICAP app (`skim.c`), its settings (`SKIM.CFG`), build script and a desktop simulator of the ICAP loader (`icapsim.c`). |
-| `tools/synth.c` | Synthetic CW generator: noise, hand-keying jitter, dash/dot ratio, QSB, drift, QRM. |
-| `tools/cwgen.c` | Writes a synthetic test WAV. |
+| `tools/synth.c` | Synthetic CW generator: noise, hand-keying jitter, dash/dot ratio, QSB, drift, QRM, first element clipped by TX switching. |
+| `tools/cwgen.c` | Writes a synthetic test WAV (`-c ms` clips the first element of each transmission). |
 | `tools/cwfile.c` | Decodes a WAV file. Options: `-m` multi, `-c N` channels (default 8), `-V`/`-A` detector, `-f Hz`, `-R lo-hi`, `-r ref.txt` (CER against a reference), `-w` (word-spacing fix, as SKIM does), `-a`, `-v`. |
 | `tools/wordfix.c` | Runs the word-spacing fix over SKIM logs or text and shows what it changes (`./build/wordfix SKIM01.LOG`). |
 | `tools/analyze.c` | Spectrum peaks of a WAV, or an ASCII envelope at one tone (`analyze f.wav 765`). |
 | `tools/bench.c` | SNR × WPM × condition sweep: CER and garbage on pure noise. `-V` / `-A` pick the detector. |
 | `tools/sweep.sh`, `psweep.sh` | Compare `-DNAME=value` build variants on the synthetic bench (`psweep` in parallel). |
 | `tools/realcheck.sh` | Compare build variants on your own recordings with reference transcripts (see below). |
+| `CHANGELOG.md` | Improvements and fixes, newest first. |
 | `LICENSE`, `THIRD_PARTY_NOTICES.md` | This project's MIT license, and credits for the ICAP SDK parts used to build the radio app. |
 | `docs/` | Images for this page (`skim-ic705.png`: SKIM on the radio). |
 | `results/` | Synthetic bench tables for each detector (`bench_thr.txt`, `bench_vit.txt`, `bench_auto.txt`). |
@@ -190,7 +191,7 @@ In multi mode the decoder:
 2. **Per channel:** I/Q mix to the tone, then a 4-pole low-pass whose time constant follows the speed.
 3. **Envelope at 1 kHz:** signal and noise levels, threshold with hysteresis, and debounce.
 4. **Timing:** k-means on recent mark and space lengths. Marks come out longer and spaces shorter by the same filter bias, so combining both cancels it. The word-gap threshold comes from each station's own measured letter and word gaps, so heavy keyer weighting does not glue words together and widely spaced operators are not split letter by letter. When several operators take turns on one frequency, each keeps its own timing profile (see below).
-5. **Detector**, then Morse table lookup (including prosigns `<SK>`, `<KN>`…).
+5. **Detector**, then Morse table lookup (including prosigns `<SK>`, `<KN>`…). The first element after a pause of 0.8 s or more is read as a dash from 1.5 units instead of 2: many transmitters in semi break-in cut it short while they switch to TX, and `TEST` would arrive as `EEST`. In synthetic tests with the first element cut by 1.4 units this recovers 81 of 144 `TEST`s (9 before) without misreading any dot.
 6. **Double squelch:** the tone must stand out in the spectrum *and* the envelope must exceed the noise.
 7. **Operator profiles:** a new transmission is detected by a long silence, or by a clear level jump (6 dB) after a pause or on 3 marks in a row. Its first 12 elements are held back. If they match a saved operator in level and speed, that operator's timing is loaded; if they fit the current timing, nothing changes (a fade); otherwise a new profile starts from its own elements.
 8. **Word spacing** (`src/words.c`, used by SKIM and `cwfile -w`): splits glued words and joins split callsigns using a small CW vocabulary and the callsign rules. It only moves spaces, never letters.

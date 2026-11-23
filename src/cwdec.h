@@ -148,6 +148,7 @@ typedef struct {
     float lvl;                    /* level of the current operator's marks */
     float mk_sum; int mk_n;       /* envelope peak of the mark being keyed */
     float last_space;             /* length of the previous space (ms) */
+    int   first_el;               /* next element starts a transmission (may be clipped) */
     int   jump_n;                 /* marks in a row with a clear level jump */
 
     uint32_t warm_t0;

@@ -228,6 +228,10 @@ static int radio_mode = RMODE_CW;
 static struct { int32_t key; uint32_t last; int used; cs_t cs; } stn[NSTN];
 static int ch_st[CWD_MAXCH];
 
+#define DIAL_POLL_MS   100u     /* how often the dial is read */
+#define DIAL_FAST_HZ   50       /* more than this in DIAL_POLL_MS: the dial is being turned */
+#define DIAL_SETTLE_MS 400u     /* still for this long: decoding starts again */
+
 static int32_t station_key(uint32_t dial, float tone)
 {
     if (cfg.pitch <= 0 || !dial || radio_mode != RMODE_CW) return (int32_t)(tone + 0.5f);   /* no dial or not in CW: key by tone */
@@ -361,8 +365,8 @@ static void send_line(int k, float tone)
     else p = sint(p, (int)(tone + 0.5f), 4);      /* not in CW: the tone, not a wrong frequency */
     *p++ = ' ';
     const char *call = chan_call(k);
-    if (cfg.calls && cs_cq(CS(k))) p = scpy(p, "CQ ");
     if (call[0]) {
+        if (cfg.calls && cs_cq(CS(k))) p = scpy(p, "CQ ");    /* only with a callsign: a bare "CQ" reads as text */
         p = scpy(p, call);
         const char *peer = cfg.calls ? cs_peer(CS(k)) : "";
         if (peer[0]) { *p++ = '>'; p = scpy(p, peer); }
@@ -397,7 +401,7 @@ static void add_text(int k, const char *s, float tone, uint32_t now)
     }
     ch[k].tone = tone;
     /* prefix: "7029.9 CQ CALL>PEER: " */
-    int pre = 7 + (cs_cq(CS(k)) ? 3 : 0) + (chan_call(k)[0] ? slen(chan_call(k)) + 2 : 0)
+    int pre = 7 + (chan_call(k)[0] ? slen(chan_call(k)) + 2 + (cs_cq(CS(k)) ? 3 : 0) : 0)
             + (cs_peer(CS(k))[0] ? slen(cs_peer(CS(k))) + 1 : 0);
     int maxl = cfg.dcols - pre;
     if (maxl < 12) maxl = 12;
@@ -675,8 +679,11 @@ int app_main(const struct icap_svc *svc)
     int last_mode = -1, warned = 0;
     uint32_t t_noncw = 0;
     /* CPU use: decoder time against audio time, logged once a minute */
-    uint32_t busy_ms = 0, audio_n = 0, t_load = icap_ticks(), ovr_logged = 0;
-    int blocks = 0;
+    uint32_t busy_ms = 0, busy_max = 0, audio_n = 0, t_load = icap_ticks(), ovr_logged = 0;
+    /* dial being turned: every tone moves, so decoding is useless and costly.
+     * Pause while the dial moves fast and start afresh once it stays put. */
+    uint32_t dial_prev = 0, t_dial = icap_ticks(), t_moved = 0, tunes = 0;
+    int tuning = 0;
 
     while (!icap_should_stop()) {
         int n = icap_audio_read(buf, 160);
@@ -685,18 +692,43 @@ int app_main(const struct icap_svc *svc)
         if (n < 0) { icap_sleep_ms(50); continue; }
         if (n == 0) {
             icap_sleep_ms(5);
+        } else if (tuning) {
+            got += (uint32_t)n;         /* audio read and dropped while the dial moves */
         } else {
             got += (uint32_t)n;
             uint32_t t0 = icap_ticks();
             unsigned mask = cwd_process(d, buf, n);
-            busy_ms += icap_ticks() - t0;
+            uint32_t dt = icap_ticks() - t0;
+            busy_ms += dt;
+            if (dt > busy_max) busy_max = dt;
             audio_n += (uint32_t)n;
             for (int k = 0; k < cwd_channels(d); k++) {
                 if (!(mask & (1u << k))) continue;
                 int m = cwd_take(d, k, txt, sizeof txt);
                 if (m > 0) { cwd_status_t s; cwd_status(d, k, &s); add_text(k, txt, s.tone_hz, now); }
             }
-            if (++blocks % 8 == 0) icap_yield();
+            icap_yield();               /* after every 20 ms block: the radio's UI stays responsive */
+        }
+        if (now - t_dial >= DIAL_POLL_MS) {
+            t_dial = now;
+            struct icap_radio rs;
+            if (icap_radio_state(&rs) == 0 && rs.freq_hz) {
+                int32_t df = (int32_t)(rs.freq_hz - dial_prev);
+                if (dial_prev && (df > DIAL_FAST_HZ || df < -DIAL_FAST_HZ)) {
+                    if (!tuning) {          /* starts moving: close what was decoded so far */
+                        for (int k = 0; k < cwd_channels(d); k++) if (ch[k].ln) send_line(k, ch[k].tone);
+                        tuning = 1;
+                    }
+                    t_moved = now;
+                }
+                dial_prev = rs.freq_hz;
+            }
+            if (tuning && now - t_moved >= DIAL_SETTLE_MS) {
+                cwd_init(d, &c);            /* stopped: decode the new frequency from scratch */
+                for (int k = 0; k < cwd_channels(d); k++) { ch[k].ln = 0; ch[k].tn = 0; ch[k].tail[0] = 0; }
+                tuning = 0;
+                tunes++;
+            }
         }
         /* phrase ended by silence (pause ms) */
         for (int k = 0; k < cwd_channels(d); k++)
@@ -709,15 +741,17 @@ int app_main(const struct icap_svc *svc)
         if (now - t_rate >= 1000u) { rate = got; got = 0; t_rate = now; }
         if (now - t_load >= 60000u && audio_n > 0) {
             if (log_fd >= 0) {          /* "# load: 9% (8 channels), audio lost: 0" */
-                char m[80], *q = scpy(m, "# load: ");
+                char m[128], *q = scpy(m, "# load: ");
                 q = sint(q, (int)(busy_ms * 100u / (audio_n / 8u + 1u)), 0);
                 q = scpy(q, "% ("); q = sint(q, cwd_channels(d), 0);
-                q = scpy(q, " channels), audio lost: "); q = sint(q, (int)(overruns - ovr_logged), 0);
+                q = scpy(q, " channels), longest block: "); q = sint(q, (int)busy_max, 0);
+                q = scpy(q, " ms, audio lost: "); q = sint(q, (int)(overruns - ovr_logged), 0);
+                q = scpy(q, ", dial pauses: "); q = sint(q, (int)tunes, 0);
                 *q++ = '\r'; *q++ = '\n';
                 icap_write(log_fd, m, (uint32_t)(q - m));
             }
             ovr_logged = overruns;
-            busy_ms = 0; audio_n = 0; t_load = now;
+            busy_ms = 0; busy_max = 0; audio_n = 0; t_load = now; tunes = 0;
         }
         if (now - t_draw >= 250u) {
             draw(d, overruns, rate, cfg.fonttest && now - t_start < 10000u);

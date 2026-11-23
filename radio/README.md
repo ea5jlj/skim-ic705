@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP` and
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `cb0e2595aee274287d6a5f87d5887e0095b63d2d223d71b6847c2110d50df069` |
+| `app/SKIM.APP` | `9c75b3a0a89eb90bb8b8d25782e00a6504cff14e46391ca18114b40699204424` |
 
 1. Copy `SKIM.APP` and `SKIM.CFG` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are.
 2. Set your **CW PITCH** in `SKIM.CFG` (`pitch=600`). The app cannot read it from the radio, and it is needed to turn each station's audio tone into its real frequency. 600 Hz is the IC-705 factory default. To see yours, press the **MULTI** knob in CW mode and look at **CW PITCH**, then put the same value here. If it does not match, every frequency shown will be off by the difference (for example 200 Hz off if your pitch is 800 Hz). If you use CW-R, also set `cwr=1`.
@@ -70,9 +70,12 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 - **Tones:** a Goertzel bank with a Hann window finds the CW tones in the audio. The noise floor is measured only inside the radio's filter passband.
 - **Per station:** each station gets its own channel: I/Q mix, a low-pass filter adapted to its speed, an envelope with adaptive threshold, speed tracking (k-means on mark/space lengths) and Morse lookup.
 - **Frequency:** station = dial − (tone − pitch). In normal CW, Icom receives on the LSB side, so a higher tone is a lower station.
+- **Clipped first element:** many transmitters in semi break-in cut the first element short while they switch to TX (`TEST` arrives as `EEST`). After a pause of 0.8 s or more, the first element is read as a dash from 1.5 units instead of 2.
+- **Turning the dial:** while the dial moves fast (more than 50 Hz in 0.1 s), every tone moves and nothing can be decoded, so SKIM closes the open lines and pauses. Once the dial has been still for 0.4 s it starts afresh on the new frequency. Small steps do not pause it.
 - **Callsigns:**
   - a candidate must follow the callsign formation rules (prefix, 1–4 digits, 1–4 letters; up to 6 letters for special-event calls with two or more digits, such as HA40EUDXF);
   - evidence for: after DE, after CQ / CQ TEST, before TEST, after TU, repeated;
+  - `TEST X` or `X TEST` (a contest CQ) shows the station as calling CQ, like `CQ X`;
   - evidence against: before DE or before a report (5NN), because that is the station being called;
   - near variants (decodes with one error) support each other, and recent evidence wins;
   - stations are remembered by their real frequency, so moving the dial does not lose them.
@@ -98,7 +101,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 
 Each line is: time, the line as shown on DECODE, then after `|` the audio tone and the raw text.
 
-Once a minute it also writes `# load: 9% (8 channels), audio lost: 0`: the share of real time the decoder needs, and how many audio blocks were lost (should stay 0).
+Once a minute it also writes `# load: 9% (8 channels), longest block: 12 ms, audio lost: 0, dial pauses: 2`: the share of real time the decoder needs; the longest time one 20 ms block of audio took (wall time, so it also counts moments when the radio's own tasks had the CPU); how many audio blocks were lost (should stay 0); and how many times decoding paused while the dial was turned.
 
 Only the last 10 sessions are kept (setting `logs`): when SKIM starts it deletes the older logs, so the SD card does not fill up. The numbers go round from `SKIM99.LOG` back to `SKIM01.LOG`, so the newest log is not always the highest number: it is the one with the latest date in its header. Copy any log you want to keep to your computer. In the test logs an hour on the band took about 20 KB.
 
@@ -131,7 +134,7 @@ radio/build/icapsim your_audio.wav -d /tmp/apps -m SKIM -p 30
 - After power-on SKIM has to be selected again with the RTTY button.
 - Lines already written on DECODE cannot be changed. A callsign that is learned later shows up from the next line on.
 - Very weak signals (below about −10 dB SNR in 2500 Hz) are not decoded reliably, and noise sometimes produces short garbage lines.
-- CPU load on the radio is not known yet. The log writes a `# load:` line every minute (decoder time as a share of real time, and audio lost), and `OVR` in the app window shows lost audio. If audio is lost in a pile-up, lower `chans`.
+- In a busy 40 m contest SKIM used up to about 50 % of the CPU with 8 channels and lost no audio. That was measured before the noise-floor speed-up, which makes the decoder about 20–25 % faster in desktop tests. SKIM runs below the radio's own tasks, gives the CPU back after every 20 ms block of audio, and pauses while the dial is turned, but the radio can still feel slower while it decodes many stations. The log's `# load:` line shows the load every minute; if the radio feels slow or audio is lost, lower `chans`.
 
 ## Notices
 

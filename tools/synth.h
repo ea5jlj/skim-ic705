@@ -21,6 +21,8 @@ typedef struct {
     float lead_s;       /* initial silence (noise only) */
     float letter_gap;   /* gap between letters in units (0 = standard 3) */
     float word_gap;     /* gap between words in units (0 = standard 7) */
+    float clip_ms;      /* first element of each transmission (after >= 15 units of
+                           silence) cut short by this much, as slow TX switching does */
     uint32_t seed;
 } synth_cfg_t;
 

@@ -118,6 +118,15 @@ int16_t *synth_render(const synth_cfg_t *c, const char *text, const char *qrm_te
     float unit = 1.2f / c->wpm;
     seq_t s = keying(text, c->dash_ratio, c->jitter,
                      c->letter_gap > 0 ? c->letter_gap : 3, c->word_gap > 0 ? c->word_gap : 7);
+    if (c->clip_ms > 0) {           /* slow TX/RX switching eats the start of the first element */
+        float cut = c->clip_ms / 1000.0f / unit;
+        for (int i = 0; i < s.n; i += 2) {
+            if (i > 0 && s.d[i - 1] < 15.0f) continue;
+            float k = cut < s.d[i] - 0.2f ? cut : s.d[i] - 0.2f;
+            s.d[i] -= k;
+            if (i > 0) s.d[i - 1] += k;
+        }
+    }
     int lead = (int)(c->lead_s * FS);
     int n = lead + (int)(seq_len(&s) * unit * FS) + FS;  /* +1 s tail */
     float *env = calloc(n, sizeof(float));

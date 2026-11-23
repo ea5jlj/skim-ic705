@@ -11,6 +11,12 @@ extern void cwd_dbg(const char *what, float a, float b, float c, float e);
 
 #define PI_F   3.14159265358979f
 #define TWO_PI 6.28318530717959f
+#ifndef FIRST_DASH_V
+#define FIRST_DASH_V 0.5f
+#endif
+#define FIRST_DASH   FIRST_DASH_V       /* first element of a transmission: dash above dot + this × unit */
+#define FIRST_GAP_MS 800.0f     /* silence before it: at least this long... */
+#define FIRST_GAP_U  12.0f      /* ...and this many units */
 #define GFRAME 256              /* samples per Goertzel frame (32 ms) */
 #define NEG    (-1e30f)
 
@@ -734,7 +740,12 @@ static void adapt_word_gap(cwd_chan_t *c)
 
 static void add_element(cwd_chan_t *c, float m)
 {
-    tb_elem(c, 0, m > c->dot + c->unit);         /* = 2 units + bias */
+    /* = 2 units + bias. The first element of a transmission is often cut short
+     * by the sender's TX switching (semi break-in): "TEST" arrives as "EEST".
+     * For it, a mark clearly longer than a dot is already a dash. */
+    float th = c->first_el ? c->dot + FIRST_DASH * c->unit : c->dot + c->unit;
+    c->first_el = 0;
+    tb_elem(c, 0, m > th);
 }
 
 /* gap of duration s that started at t0 (ms) */
@@ -861,13 +872,17 @@ static void prof_select(cwd_chan_t *c)
 
 /* At the start of a transmission the first elements are buffered and decoded
  * in one go once there are speed statistics. */
+/* a pause long enough for the sender's transmitter to drop back to receive */
+static int long_pause(const cwd_chan_t *c, float s) { return s > FIRST_GAP_MS && s > FIRST_GAP_U * c->unit; }
+
 static void replay(const cwd_t *d, cwd_chan_t *c)
 {
     prof_select(c);
     uint32_t t = c->warm_t0;
     for (int i = 0; i < c->nev; i++) {
         if (c->ev[i] > 0) { add_element(c, c->ev[i]); t += (uint32_t)c->ev[i]; }
-        else              { add_space(d, c, -c->ev[i], t); t += (uint32_t)(-c->ev[i]); }
+        else              { add_space(d, c, -c->ev[i], t); t += (uint32_t)(-c->ev[i]);
+                            if (long_pause(c, -c->ev[i])) c->first_el = 1; }
     }
     c->nev = 0;
     c->warm = 0;
@@ -921,8 +936,10 @@ static void on_space(const cwd_t *d, cwd_chan_t *c, float s)
             prof_save(c);
             start_warm(c);
         }
+        c->first_el = 1;
         return;
     }
+    if (!c->warm && long_pause(c, s)) c->first_el = 1;   /* while warm: replay() sees the space */
     push_space(c, s);
     update_timing(c);
     adapt_word_gap(c);
@@ -1208,6 +1225,25 @@ static void track_multi(cwd_t *d)
     }
 }
 
+/* k-th smallest of a[0..n) (0-based); reorders a. Hoare's selection. */
+static float kth(float *a, int n, int k)
+{
+    int lo = 0, hi = n - 1;
+    while (lo < hi) {
+        float piv = a[(lo + hi) >> 1];
+        int i = lo, j = hi;
+        while (i <= j) {
+            while (a[i] < piv) i++;
+            while (a[j] > piv) j--;
+            if (i <= j) { float t = a[i]; a[i] = a[j]; a[j] = t; i++; j--; }
+        }
+        if (k <= j) hi = j;
+        else if (k >= i) lo = i;
+        else break;
+    }
+    return a[k];
+}
+
 static void tone_frame(cwd_t *d)
 {
     int nb = d->nbins;
@@ -1225,34 +1261,26 @@ static void tone_frame(cwd_t *d)
     int pk = 0;
     for (int b = 1; b < nb; b++) if (d->spec[b] > d->spec[pk]) pk = b;
     {
-        float t[CWD_NBINS_MAX];
-        for (int i = 0; i < nb; i++) {
-            float x = d->spec[i]; int j = i;
-            while (j > 0 && t[j - 1] > x) { t[j] = t[j - 1]; j--; }
-            t[j] = x;
-        }
         /* CW signals are narrow peaks: a moving minimum (±FLOOR_W bins) removes
          * them and leaves the noise, even in a dense pile-up, where the plain
          * spectrum is mostly signals */
-        float m[CWD_NBINS_MAX], tm[CWD_NBINS_MAX];
+        float m[CWD_NBINS_MAX], w[CWD_NBINS_MAX];
         for (int i = 0; i < nb; i++) {
             float v = d->spec[i];
             for (int k = i - FLOOR_W; k <= i + FLOOR_W; k++)
                 if (k >= 0 && k < nb && d->spec[k] < v) v = d->spec[k];
             m[i] = v;
         }
-        for (int i = 0; i < nb; i++) {
-            float x = m[i]; int j = i;
-            while (j > 0 && tm[j - 1] > x) { tm[j] = tm[j - 1]; j--; }
-            tm[j] = x;
-        }
         /* only bins inside the passband count: those the radio's filter silences
-         * (>13 dB below the noise there) are not "noise" */
-        float pref = tm[(int)(0.8f * (nb - 1))];
+         * (>13 dB below the noise there) are not "noise". Two order statistics
+         * of m, found by selection instead of sorting (same values, less CPU) */
+        for (int i = 0; i < nb; i++) w[i] = m[i];
+        float pref = kth(w, nb, (int)(0.8f * (nb - 1)));
         int first = 0;
-        while (first < nb - 1 && tm[first] < PASS_FRAC * pref) first++;
-        float fl = FLOOR_K * tm[first + (int)(FLOOR_PCT * (nb - 1 - first))];   /* the minimum sits a little below the mean */
-        (void)t;
+        for (int i = 0; i < nb; i++) if (m[i] < PASS_FRAC * pref) first++;
+        if (first > nb - 1) first = nb - 1;
+        for (int i = 0; i < nb; i++) w[i] = m[i];
+        float fl = FLOOR_K * kth(w, nb, first + (int)(FLOOR_PCT * (nb - 1 - first)));   /* the minimum sits a little below the mean */
         d->floor = fl > 1e-12f ? fl : 1e-12f;
     }
 

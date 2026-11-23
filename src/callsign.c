@@ -32,6 +32,8 @@ static int is_base(const char *s, int n)
             if (!(is_al(s[0]) || is_al(s[1]))) continue;
             if (!(is_al(s[0]) || is_dg(s[0])) || !(is_al(s[1]) || is_dg(s[1]))) continue;
             if (is_dg(s[1]) && !is_al(s[0])) continue;
+            /* T0, T1: not allocated; in contests "T16" is a cut serial number (016) */
+            if (s[0] == 'T' && (s[1] == '0' || s[1] == '1')) continue;
         }
         /* 1 to 4 digits: special-event calls have several (GB100ABC, EA25XYZ) */
         int nd = 0;
@@ -184,8 +186,10 @@ static void token(cs_t *s, const char *t0)
     } else if (seq(t, "CQ")) {
         s->cq = 1;                                                  /* calling CQ: no QSO yet */
         s->peer[0] = 0;
-    } else if (seq(t, "TEST") && cs_is_call(p1)) {
-        bump(s, p1, 2.0f);                                          /* "X TEST": X is calling in a contest */
+    } else if (seq(t, "TEST")) {
+        s->cq = 1;                                                  /* contest CQ: "TEST X" or "X TEST" */
+        s->peer[0] = 0;
+        if (cs_is_call(p1)) bump(s, p1, 2.0f);                      /* "X TEST": X is calling in a contest */
     } else if (seq(t, "DE") && cs_is_call(p1)) {
         bump(s, p1, -3.0f);                                         /* "X DE …": X is the other station */
         if (seq(s->best, p1)) s->best[0] = 0;
