@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `20ae60c4b6e46231c2e77441564a33a0aa3544e0b6e384f84979df5c957d19f0` |
+| `app/SKIM.APP` | `65257b8b41351dcf003d3cc015727cc12bcf8269b482ba9a3d3c99138e965f54` |
 | `app/SKIMDICT.BIN` | `652ca556d0ee18fd15fcc879471a3e0b69d9360939ed546ef2379bc01e7fbda3` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
@@ -147,7 +147,7 @@ Once a minute it also writes `# load: 9% (8 channels), longest block: 12 ms, aud
 
 Only the last 10 sessions are kept (setting `logs`): when SKIM starts it deletes the older logs, so the SD card does not fill up. The numbers go round from `SKIM99.LOG` back to `SKIM01.LOG`, so the newest log is not always the highest number: it is the one with the latest date in its header. Copy any log you want to keep to your computer. In the test logs an hour on the band took about 20 KB.
 
-Mode codes measured on the IC-705: **32** = CW or CW-R, **48** = RTTY or RTTY-R, **80** = the decoder mode selected with the RTTY button.
+Mode codes measured on the IC-705: **32** = CW or CW-R, **48** = RTTY or RTTY-R, **80** = the decoder mode selected with the RTTY button. The low 4 bits are the filter (CW: 32 with FIL1, 33 with FIL2, 34 with FIL3), so SKIM only looks at the high 4 bits.
 
 ## Building
 

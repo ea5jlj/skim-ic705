@@ -2,6 +2,13 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — CW with any filter, shorter popup
+
+### Fixes
+
+- **CW not recognised with another filter.** With FIL2 (or FIL3) SKIM said the radio was not in CW: the "not in CW" popup appeared and lines showed the audio tone instead of the station frequency. The radio's mode code carries the filter in its low 4 bits (CW is 32 with FIL1, 33 with FIL2…), and SKIM compared the whole code with 32. Only the high 4 bits are compared now. The radio's log confirms the codes (FIL2 33, FIL3 34); checked in the simulator (new `icapsim -M code`); the log still records the full code.
+- **Shorter "not in CW" popup.** The radio's CLOSE button covered part of the five-line message; it is now two short lines: `SKIM: not in CW mode.` / `No station frequencies.`
+
 ## 2026-11-24 — PSKReporter spots (experimental)
 
 ### Improvements

@@ -226,6 +226,9 @@ static void log_name(char *name, int n)              /* SKIMnn.LOG */
  * 32 = CW and CW-R (not distinguished), 48 = RTTY and RTTY-R, 80 = decoder mode
  * selected with the RTTY button. Station frequencies only make sense in CW. */
 #define RMODE_CW 32
+/* the low 4 bits of the mode code are the filter (CW: FIL1 32, FIL2 33, FIL3 34):
+ * only the high 4 bits say the mode */
+#define IS_CW(m) (((m) & 0xF0) == RMODE_CW)
 static int radio_mode = RMODE_CW;
 
 /* Stations are remembered by their REAL FREQUENCY (not by the audio tone, which
@@ -249,7 +252,7 @@ static int ch_st[CWD_MAXCH];
 
 static int32_t station_key(uint32_t dial, float tone)
 {
-    if (cfg.pitch <= 0 || !dial || radio_mode != RMODE_CW) return (int32_t)(tone + 0.5f);   /* no dial or not in CW: key by tone */
+    if (cfg.pitch <= 0 || !dial || !IS_CW(radio_mode)) return (int32_t)(tone + 0.5f);   /* no dial or not in CW: key by tone */
     float off = (float)cfg.pitch - tone;
     if (cfg.cwr) off = -off;
     return (int32_t)dial + (int32_t)(off >= 0 ? off + 0.5f : off - 0.5f);
@@ -512,7 +515,7 @@ static void spot_flush(uint32_t now, int last)
 static void spot(int k, float tone, const char *body, uint32_t now)
 {
     const char *call = chan_call(k);
-    if (!ps || !call[0] || cfg.pitch <= 0 || radio_mode != RMODE_CW || !self_named(body, call)) return;
+    if (!ps || !call[0] || cfg.pitch <= 0 || !IS_CW(radio_mode) || !self_named(body, call)) return;
     uint64_t dial = true_dial();
     if (!dial) dial = ch[k].dial_hz;
     float off = (float)cfg.pitch - tone;                            /* station = dial + off (CW) */
@@ -592,7 +595,7 @@ static void send_line(int k, float tone)
 
     /* DECODE: "7029.9 CQ EA4XYZ: text" / "7029.9 EA4XYZ>DL1ABC: text" / "7029.9 text" */
     char out[180], *p = out;
-    if (cfg.pitch > 0 && ch[k].dial_hz && radio_mode == RMODE_CW) p = sfreq_station(p, ch[k].dial_hz, tone);
+    if (cfg.pitch > 0 && ch[k].dial_hz && IS_CW(radio_mode)) p = sfreq_station(p, ch[k].dial_hz, tone);
     else p = sint(p, (int)(tone + 0.5f), 4);      /* not in CW: the tone, not a wrong frequency */
     *p++ = ' ';
     const char *call, *peer;
@@ -1053,10 +1056,10 @@ int app_main(const struct icap_svc *svc)
             if (icap_radio_state(&rs) == 0) {
                 radio_mode = rs.mode;
                 /* one-time warning if the radio stays out of CW for 8 s */
-                if (rs.mode != RMODE_CW) { if (!t_noncw) t_noncw = now; }
+                if (!IS_CW(rs.mode)) { if (!t_noncw) t_noncw = now; }
                 else t_noncw = 0;
                 if (t_noncw && !warned && now - t_noncw > 8000u) {
-                    icap_popup("SKIM is decoding, but the\nradio is not in CW mode.\n\nSwitch back to CW to see\neach station's frequency.");
+                    icap_popup("SKIM: not in CW mode.\nNo station frequencies.");   /* short: CLOSE covers the lower lines */
                     warned = 1;
                 }
             }
