@@ -2,6 +2,13 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-25 — pile-up labels
+
+### Fixes
+
+- **No QSO partner guessed in a pile-up.** A station without a callsign of its own, close to one in a QSO, is labelled as that QSO's other side. In a pile-up the callers sit on or near the DX's frequency, and SKIM showed partners that were not working each other (`DL7CX>IZ4DYU`). Now there is no guess when three or more named stations were heard within 1 kHz in the last two minutes. The QSO recordings keep all their partner labels.
+- **A call cut short is not taken as complete.** When the last character of a callsign could not be read, the cleaning dropped the `*` and kept the rest (`DE F8F*` of F8FAZ became `DE F8F`), so the label showed `F8F` until the next CQ. A callsign that ends in an unreadable character now keeps one `*` at the end (`F8F*`), also when the `*` came as a separate word right after it, and does not count as a callsign; a `*` at the start or in the middle is still dropped.
+
 ## 2026-11-24 — full callsign in pile-ups
 
 ### Fixes

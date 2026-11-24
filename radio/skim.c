@@ -242,6 +242,12 @@ static int radio_mode = RMODE_CW;
 #endif
 #define PAIR_HZ 100                     /* a QSO partner is within this... */
 #define PAIR_MS 120000u                 /* ...and was heard in the last 2 minutes */
+#ifndef CROWD_HZ
+#define CROWD_HZ 1000                   /* this many named stations within this, heard in */
+#endif
+#ifndef CROWD_N
+#define CROWD_N  3                      /* the last 2 minutes: a pile-up, no partner guessing */
+#endif
 typedef struct { int32_t key; uint32_t last; int used; cs_t cs; } stn_t;
 static stn_t *stn;                      /* NSTN stations, in the heap (the app window is small) */
 static int ch_st[CWD_MAXCH];
@@ -294,16 +300,19 @@ static void chan_label(int k, const char **call, const char **peer)
     *call = chan_call(k);
     *peer = cfg.calls ? cs_peer(CS(k)) : "";
     if (!cfg.calls || (*call)[0]) return;
-    int me = ch_st[k];
+    int me = ch_st[k], crowd = 0, pick = -1;
     uint32_t now = icap_ticks();
     for (int i = 0; i < NSTN; i++) {
         if (i == me || !stn[i].used || now - stn[i].last > PAIR_MS) continue;
         int32_t dd = stn[i].key - stn[me].key;
         if (dd < 0) dd = -dd;
-        if (dd > PAIR_HZ) continue;
         const char *b = cs_best(&stn[i].cs), *q = cs_peer(&stn[i].cs);
-        if (b[0] && q[0] && !cs_cq(&stn[i].cs)) { *call = q; *peer = b; return; }
+        if (b[0] && dd <= CROWD_HZ) crowd++;
+        if (dd <= PAIR_HZ && b[0] && q[0] && !cs_cq(&stn[i].cs) && pick < 0) pick = i;
     }
+    /* many named stations around: a pile-up, where the callers sit on or near
+     * the DX's frequency and who works whom cannot be told apart */
+    if (pick >= 0 && crowd < CROWD_N) { *call = cs_peer(&stn[pick].cs); *peer = cs_best(&stn[pick].cs); }
 }
 
 /* Removes typical noise from a phrase: words made only of E, T and *, short
@@ -325,20 +334,42 @@ static int junk_word(const char *w, int n)
     return 0;
 }
 
-static int clean_text(const char *in, char *out, int max)
+/* A callsign that ends in an unreadable character (F8F* of F8FAZ) keeps one
+ * * at the end, so it is not taken for a complete call; a lone * right after
+ * a callsign is joined to it ("F8F *" -> "F8F*"). Elsewhere the * is dropped
+ * (*N9CLU, a lost first letter, still counts for ON9CLU). last = 0 for
+ * the pass before the word-spacing fix, which keeps lone *s for the last one. */
+static int clean_text(const char *in, char *out, int max, int last)
 {
-    int on = 0;
+    int on = 0, prev = -1;              /* prev: start of the last word written */
     while (*in) {
         while (*in == ' ') in++;
         const char *w = in;
         while (*in && *in != ' ') in++;
         int n = (int)(in - w);
-        if (!n || junk_word(w, n)) continue;
+        if (!n) continue;
+        int stars = 0;
+        for (int i = 0; i < n; i++) stars += w[i] == '*';
+        if (stars == n) {                                   /* a lone * (or **) */
+            if (!last) { if (on && on < max - 1) out[on++] = ' '; if (on < max - 1) { out[on++] = '*'; prev = on - 1; } continue; }
+            if (prev >= 0 && out[on - 1] != '*' && on < max - 1) {
+                char save = out[on]; out[on] = 0;
+                int call = cs_is_call(out + prev);
+                out[on] = save;
+                if (call) out[on++] = '*';
+            }
+            continue;
+        }
+        if (junk_word(w, n)) continue;
         char tmp[64]; int tn = 0;
         for (int i = 0; i < n && tn < 63; i++) if (w[i] != '*') tmp[tn++] = w[i];
         if (!tn) continue;
+        tmp[tn] = 0;
+        int keep = w[n - 1] == '*' && cs_is_call(tmp);      /* F8F*: a call cut short at the end */
         if (on && on < max - 1) out[on++] = ' ';
+        prev = on;
         for (int i = 0; i < tn && on < max - 1; i++) out[on++] = tmp[i];
+        if (keep && on < max - 1) out[on++] = '*';
     }
     out[on] = 0;
     return on;
@@ -574,7 +605,7 @@ static void send_line(int k, float tone)
     if (chars < 2 || real == 0) { ch[k].ln = 0; return; }
 
     char body[120];
-    if (cfg.clean) { if (clean_text(ch[k].line, body, 80) < 2) { ch[k].ln = 0; return; } }
+    if (cfg.clean) { if (clean_text(ch[k].line, body, 80, !cfg.words) < 2) { ch[k].ln = 0; return; } }
     else scpy(body, ch[k].line);
     if (cfg.words) {                    /* word spacing: "CQCQDEEA4XYZ" → "CQ CQ DE EA4XYZ" */
         const char *known[2 * NSTN]; int nk = 0;
@@ -585,7 +616,7 @@ static void send_line(int k, float tone)
         }
         char fixed[120];
         wd_fix(body, fixed, sizeof fixed, known, nk);
-        if (cfg.clean) clean_text(fixed, body, 120);    /* noise the split freed: "III CQ DX" */
+        if (cfg.clean) { if (clean_text(fixed, body, 120, 1) < 2) { ch[k].ln = 0; return; } }   /* noise the split freed: "III CQ DX" */
         else scpy(body, fixed);
     }
     /* the callsign logic reads the finished line, with its spacing fixed */
