@@ -105,7 +105,9 @@ static struct {
     int tmin, tmax, tone, spec, fonttest, pause, calls, pitch, cwr, clean, words, logs;
 } cfg = { CWD_MODE_MULTI, CWD_DET_THRESHOLD, 8, 30, 40, 1, 1, 20, 250, 2500, 0, 2, 0, 1500, 1, 600, 0, 1, 1, 10 };
 
-static void read_cfg(void)
+/* not inlined: its 3 KB buffer must leave the stack once the settings are read,
+ * or it stays under app_main for the whole session */
+__attribute__((noinline)) static void read_cfg(void)
 {
     int fd = icap_open("SKIM.CFG", ICAP_O_READ);
     if (fd < 0) return;
@@ -614,7 +616,8 @@ static void draw(cwd_t *d, uint32_t overruns, uint32_t rate_sps, int fonttest)
 
 /* English and Spanish word list for the word-spacing fix: SKIMDICT.BIN (tools/mkdict.py
  * --bin) in the Apps folder, read into the memory left after the decoder.
- * Returns its size, or 0 when there is none (SKIM then works without it). */
+ * Returns its size, 0 when there is none, -1 when it is damaged (SKIM then
+ * works without it). */
 static int load_dict(uint8_t *room, uint32_t room_n)
 {
     if (!room || room_n < 4 + 677 * 2) return 0;
@@ -630,7 +633,8 @@ static int load_dict(uint8_t *room, uint32_t room_n)
     icap_close(fd);
     const uint16_t *idx = (const uint16_t *)(room + 4);
     if (n < 4 + 677 * 2 || room[0] != 'S' || room[1] != 'K' || room[2] != 'D' || room[3] != '1' ||
-        4u + 677u * 2u + idx[676] != n) return 0;               /* not ours, or cut short */
+        4u + 677u * 2u + idx[676] != n) return -1;              /* not ours, or cut short */
+    for (int i = 0; i < 676; i++) if (idx[i] > idx[i + 1]) return -1;  /* damaged */
     wd_dict(idx, room + 4 + 677 * 2);
     return (int)n;
 }
@@ -734,7 +738,9 @@ int app_main(const struct icap_svc *svc)
             else q = scpy(q, " (started from autostart or the Apps menu)");
             *q++ = '\r'; *q++ = '\n';
             icap_write(log_fd, h, (uint32_t)(q - h));
-            q = scpy(h, dict_bytes > 0 ? "# word list: SKIMDICT.BIN, " : "# word list: none (SKIMDICT.BIN not found)");
+            q = scpy(h, dict_bytes > 0 ? "# word list: SKIMDICT.BIN, " :
+                        dict_bytes < 0 ? "# word list: none (SKIMDICT.BIN damaged or too big)" :
+                                         "# word list: none (SKIMDICT.BIN not found)");
             if (dict_bytes > 0) { q = sint(q, dict_bytes, 0); q = scpy(q, " bytes"); }
             *q++ = '\r'; *q++ = '\n';
             icap_write(log_fd, h, (uint32_t)(q - h));

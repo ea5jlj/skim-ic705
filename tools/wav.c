@@ -44,6 +44,7 @@ int16_t *wav_read_8k(const char *path, int *nout)
     for (long p = 12; p + 8 <= sz;) {
         uint32_t cl = g32(b + p + 4);
         if (!memcmp(b + p, "fmt ", 4)) {
+            if (cl < 16 || p + 24 > sz) break;           /* fmt chunk too short */
             fmt = g16(b + p + 8); ch = g16(b + p + 10); rate = g32(b + p + 12); bits = g16(b + p + 22);
             if (fmt == 0xFFFE && cl >= 40) fmt = g16(b + p + 32);
         } else if (!memcmp(b + p, "data", 4)) {
@@ -52,7 +53,7 @@ int16_t *wav_read_8k(const char *path, int *nout)
         }
         p += 8 + cl + (cl & 1);
     }
-    if (!data || ch < 1 || rate < 1000) { free(b); return NULL; }
+    if (!data || ch < 1 || rate < 1000 || (bits != 8 && bits != 16 && bits != 24 && bits != 32)) { free(b); return NULL; }
     int bps = bits / 8;
     int nin = dlen / (bps * ch);
     float *mono = malloc(nin * sizeof(float));

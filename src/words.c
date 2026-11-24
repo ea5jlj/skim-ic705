@@ -166,6 +166,8 @@ static int dict_has(const char *p, int n)
     const char *r = p + 2; int rl = n - 2;
     while (q < end) {
         int keep = *q >> 4, add = *q & 15; q++;
+        /* the data may come from a file (SKIMDICT.BIN): never trust it */
+        if (keep > wl || keep + add > (int)sizeof w || q + add > end) return 0;
         wl = keep;
         for (int i = 0; i < add; i++) w[wl++] = (char)q[i];
         q += add;
@@ -416,6 +418,9 @@ static int pass(const char *in, char *out, int max, const char *const *known, in
 {
     const char *ws[64]; int wn[64];
     int n = tokens(in, ws, wn, 64);
+    /* text after the 64th token is copied as it is: letters are never lost */
+    const char *rest = n ? ws[n - 1] + wn[n - 1] : in;
+    while (*rest == ' ') rest++;
     int on = 0;
     char buf[2 * TOKMAX + 2];
     for (int i = 0; i < n; i++) {
@@ -436,9 +441,14 @@ static int pass(const char *in, char *out, int max, const char *const *known, in
         while (q < m && p[m - 1 - q] == '?') q++;
         int sm = split(p, m - q, buf, known, nk, next);
         if (!sm) sm = dict_split(p, m - q, buf);
+        if (sm + q > (int)sizeof buf) sm = 0;        /* no room for the "?"s: leave it whole */
         if (sm) { for (int k = 0; k < q; k++) buf[sm++] = '?'; p = buf; m = sm; }
         if (on && on < max - 1) out[on++] = ' ';
         for (int k = 0; k < m && on < max - 1; k++) out[on++] = p[k];
+    }
+    if (*rest) {
+        if (on && on < max - 1) out[on++] = ' ';
+        for (; *rest && on < max - 1; rest++) out[on++] = *rest;
     }
     if (max > 0) out[on] = 0;
     return on;

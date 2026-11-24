@@ -2,6 +2,18 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — code review fixes
+
+### Fixes (code review)
+
+Found by a full review: clang static analyser, AddressSanitizer and UndefinedBehaviorSanitizer on every tool, recording and test file, half a million random lines through the word-spacing fix and callsign tracker, extreme audio (silence, clipping, DC, full-scale noise, 37 tones at once, a 3-sample file), stack use measured on the radio build, and all benchmarks compared with `results/` (identical).
+
+- **Stack use on the radio.** The 3 KB settings buffer was inlined into `app_main` and stayed on the stack for the whole session: the deepest call chain (app → line → word spacing) took about 14 of the 16 KB of stack. `read_cfg` is no longer inlined; the deepest chain is now about 11 KB.
+- **Letters lost on very long lines.** The word-spacing fix kept only the first 64 pieces of a line and dropped the rest (79 `=` signs in one line would do it). Text after the 64th piece is now copied as it is; random testing checks that only spaces ever change.
+- **A damaged `SKIMDICT.BIN` could overflow a buffer.** The word list was trusted: a corrupted file could make a lookup write past a 16-byte buffer. Lookups now stop at any inconsistent entry, and SKIM rejects a file whose offsets are out of order (the log says `damaged or too big`, not `not found`).
+- **Trailing `?` with no room.** Putting back the `?` after a split token (`HW?`) did not check the space left; a long token followed by many `?` could overflow. Such a token is now left whole.
+- **Malformed WAV files** (desktop tools): a bit depth below 8 divided by zero and a short `fmt` chunk read past the end of the file; both are now rejected.
+
 ## 2026-11-24 — more CW abbreviations
 
 ### Improvements

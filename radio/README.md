@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `05a4d14a19da236184cb72461d8731a401029bf0cadaf381525ed8f9027ad64c` |
+| `app/SKIM.APP` | `cc9b219e7586b1c0f5a4222fd581f9c2f234303b4d02fa50c1344707d139aa7c` |
 | `app/SKIMDICT.BIN` | `56d07ea645a359175508c8fa2499e9a688b8ba7fe3e2492ff106152331049448` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
@@ -106,7 +106,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 
 Each line is: time, the line as shown on DECODE, then after `|` the audio tone and the raw text.
 
-The header also says whether the word list was loaded: `# word list: SKIMDICT.BIN, 31649 bytes` or `# word list: none (SKIMDICT.BIN not found)`.
+The header also says whether the word list was loaded: `# word list: SKIMDICT.BIN, 31649 bytes` `# word list: none (SKIMDICT.BIN not found)`, or `# word list: none (SKIMDICT.BIN damaged or too big)` (SKIM then works without it).
 
 Once a minute it also writes `# load: 9% (8 channels), longest block: 12 ms, audio lost: 0, dial pauses: 2`: the share of real time the decoder needs; the longest time one 20 ms block of audio took (wall time, so it also counts moments when the radio's own tasks had the CPU); how many audio blocks were lost (should stay 0); and how many times decoding paused while the dial was turned.
 
