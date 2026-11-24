@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Pablo Torres, EA5JLJ. See LICENSE.
+#
+# Common Spanish words for the word-spacing fix (src/words.c), as people send
+# them in CW conversations. Written for this project; tools/mkdict.py expands
+# it and joins it with the English list. Accents are removed and Ñ becomes N
+# (AÑO → ANO), as in CW, where the decoder only gives A-Z.
+#
+# Lines:
+#   = w w w        words as they are
+#   n: w w w       nouns: plural added (casa → casas, ciudad → ciudades)
+#   a: w w w       adjectives: feminine and plurals (bueno → buena buenos buenas)
+#   v: w w w       regular verbs: the usual forms (present, past, imperfect,
+#                  future, conditional, present subjunctive, imperative,
+#                  gerund, participle); "pensar/ie", "poder/ue", "pedir/i"
+#                  mark a stem change in the stressed forms
+#   Irregular verbs are written out with "=".
+
+# ---- articles, pronouns, prepositions, conjunctions
+= el la los las lo un una unos unas al del
+= yo tu usted ustedes el ella ello nosotros nosotras vosotros vosotras ellos ellas
+= me te se nos os le les mi mis tu tus su sus nuestro nuestra nuestros nuestras vuestro vuestra vuestros vuestras
+= mio mia mios mias tuyo tuya tuyos tuyas suyo suya suyos suyas conmigo contigo consigo
+= este esta estos estas ese esa esos esas aquel aquella aquellos aquellas esto eso aquello
+= que quien quienes cual cuales cuyo cuya donde adonde cuando como cuanto cuanta cuantos cuantas
+= a ante bajo con contra de desde durante en entre hacia hasta mediante para por segun sin sobre tras via
+= y e o u ni pero sino aunque porque pues si como mientras luego entonces
+= algo alguien alguno alguna algunos algunas algun nada nadie ninguno ninguna ningun
+= todo toda todos todas otro otra otros otras mismo misma mismos mismas tal tales
+= mucho mucha muchos muchas poco poca pocos pocas varios varias cada ambos ambas demas
+= tanto tanta tantos tantas bastante bastantes demasiado demasiada demasiados demasiadas
+
+# ---- adverbs and common expressions
+= no si ya aun todavia tambien tampoco siempre nunca jamas casi solo solamente
+= muy mas menos bien mal mejor peor asi aqui ahi alli alla aca cerca lejos dentro fuera
+= arriba abajo encima debajo delante detras antes despues luego pronto tarde temprano
+= hoy ayer manana anoche ahora entonces mientras quizas quiza acaso apenas
+= claro vale bueno gracias hola adios saludos felicidades enhorabuena perdon disculpa
+= tambien ademas incluso mismo realmente seguramente probablemente exactamente
+= despacio deprisa rapido lento juntos solo sola
+= cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince
+= dieciseis diecisiete dieciocho diecinueve veinte veintiuno veintidos treinta cuarenta
+= cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos
+= quinientos seiscientos setecientos ochocientos novecientos mil millon millones
+= primero primera segundo segunda tercero tercera cuarto cuarta quinto quinta ultimo ultima
+= lunes martes miercoles jueves viernes sabado domingo
+= enero febrero marzo abril mayo junio julio agosto septiembre setiembre octubre noviembre diciembre
+= norte sur este oeste noreste noroeste sureste suroeste
+
+# ---- radio words
+n: radio antena equipo transceptor emisora estacion banda frecuencia potencia vatio watio
+n: contacto comunicado comunicacion conexion senal ruido interferencia propagacion condicion
+n: reporte informe tarjeta diploma concurso expedicion indicativo prefijo locator localizador
+n: operador operadora radioaficionado radioaficionada colega amigo amiga companero companera
+n: dipolo vertical directiva cuadro hilo cable coaxial balun acoplador sintonizador tierra mastil torre
+n: elemento metro kilometro vatio voltio amperio bateria fuente panel portatil mochila
+n: manipulador llave pala paleta bug telegrafo morse telegrafia fonia digital modo
+n: escucha llamada respuesta mensaje saludo abrazo recuerdo deseo ilusion
+n: vez momento minuto hora dia semana mes ano siglo tiempo rato
+n: nombre apellido ciudad pueblo provincia region pais casa calle campo monte montana sierra playa costa isla rio mar lago
+n: amigo familia padre madre hijo hija hermano hermana esposa esposo mujer marido nieto nieta abuelo abuela
+n: trabajo vida mundo cosa parte lugar caso forma manera punto lado fin final principio mitad
+n: verano invierno primavera otono manana tarde noche mediodia madrugada fiesta vacacion
+n: lluvia nieve viento sol nube niebla tormenta grado temperatura clima
+n: club asociacion reunion encuentro feria comida cena desayuno cafe cerveza vino
+n: coche tren avion barco viaje visita vuelta camino
+n: pregunta problema solucion idea razon verdad gusto placer honor favor suerte salud
+= qso qsl qrp qth qrz qrm qrn qsb qsy qrt qrv qrl qru qrs qrq cq dx rst cw ssb
+= ok fb hi gm ga ge gn tnx tks pse agn de om yl xyl
+
+# ---- adjectives
+a: bueno malo nuevo viejo largo corto alto bajo ancho estrecho grande pequeno
+a: mejor peor mayor menor primero ultimo proximo siguiente anterior unico propio
+a: claro oscuro fuerte debil limpio sucio lleno vacio rapido lento facil dificil
+a: frio caliente caluroso fresco seco humedo nublado soleado lluvioso templado
+a: contento feliz alegre triste cansado ocupado libre tranquilo
+a: bonito precioso estupendo magnifico perfecto excelente fantastico increible maravilloso
+a: interesante importante posible imposible necesario seguro cierto verdadero
+a: simple sencillo complicado barato caro antiguo moderno casero nacional internacional
+a: amable simpatico agradable cordial atento querido estimado
+a: mismo otro cualquier junto medio entero completo
+a: rojo verde azul blanco negro amarillo gris
+
+# ---- regular verbs
+v: hablar llamar escuchar trabajar esperar pasar llegar quedar llevar dejar tomar mirar
+v: necesitar usar ayudar gustar preguntar contestar terminar empezar/ie comenzar/ie
+v: pensar/ie recordar/ue contar/ue encontrar/ue probar/ue sonar/ue volar/ue costar/ue mostrar/ue
+v: cambiar comprar montar instalar ajustar sintonizar copiar enviar mandar saludar agradecer
+v: escribir vivir recibir subir abrir decidir permitir existir cumplir unir transmitir emitir
+v: comer beber leer aprender comprender responder correr vender meter creer deber
+v: operar llamar viajar visitar descansar disfrutar celebrar participar organizar preparar
+v: intentar tratar buscar sacar tocar explicar practicar indicar
+v: ganar olvidar notar anotar confirmar funcionar pensar/ie cerrar/ie despertar/ie
+v: entender/ie perder/ie querer/ie volver/ue mover/ue llover/ue resolver/ue
+v: dormir/ue morir/ue sentir/ie preferir/ie pedir/i repetir/i servir/i seguir/i
+v: necesitar desear estudiar escuchar acabar aceptar alcanzar animar apagar encender/ie
+v: conectar desconectar reparar construir/ui medir/i
+
+# ---- irregular verbs
+= ser soy eres es somos sois son era eras eramos erais eran fui fuiste fue fuimos fuisteis fueron
+= sere seras sera seremos sereis seran seria serias seriamos seriais serian sea seas seamos seais sean siendo sido se
+= estar estoy estas esta estamos estais estan estaba estabas estabamos estabais estaban
+= estuve estuviste estuvo estuvimos estuvisteis estuvieron estare estaras estara estaremos estareis estaran
+= estaria estarias estariamos estariais estarian este estes estemos esteis esten estando estado
+= haber he has ha hemos habeis han habia habias habiamos habiais habian hube hubo
+= habre habras habra habremos habreis habran habria habrias habriamos habriais habrian
+= haya hayas hayamos hayais hayan habiendo habido hay
+= tener tengo tienes tiene tenemos teneis tienen tenia tenias teniamos teniais tenian
+= tuve tuviste tuvo tuvimos tuvisteis tuvieron tendre tendras tendra tendremos tendreis tendran
+= tendria tendrias tendriamos tendriais tendrian tenga tengas tengamos tengais tengan teniendo tenido ten
+= hacer hago haces hace hacemos haceis hacen hacia hacias haciamos haciais hacian
+= hice hiciste hizo hicimos hicisteis hicieron hare haras hara haremos hareis haran
+= haria harias hariamos hariais harian haga hagas hagamos hagais hagan haciendo hecho haz
+= ir voy vas va vamos vais van iba ibas ibamos ibais iban ire iras ira iremos ireis iran
+= iria irias iriamos iriais irian vaya vayas vayamos vayais vayan yendo ido ve
+= poder puedo puedes puede podemos podeis pueden podia podias podiamos podiais podian
+= pude pudiste pudo pudimos pudisteis pudieron podre podras podra podremos podreis podran
+= podria podrias podriamos podriais podrian pueda puedas podamos podais puedan pudiendo podido
+= decir digo dices dice decimos decis dicen decia decias deciamos deciais decian
+= dije dijiste dijo dijimos dijisteis dijeron dire diras dira diremos direis diran
+= diria dirias diriamos diriais dirian diga digas digamos digais digan diciendo dicho di
+= ver veo ves ve vemos veis ven veia veias veiamos veiais veian vi viste vio vimos visteis vieron
+= vere veras vera veremos vereis veran veria verias veriamos veriais verian vea veas veamos veais vean viendo visto
+= dar doy das da damos dais dan daba dabas dabamos dabais daban di diste dio dimos disteis dieron
+= dare daras dara daremos dareis daran daria darias dariamos dariais darian de des demos deis den dando dado
+= saber se sabes sabe sabemos sabeis saben sabia sabias sabiamos sabiais sabian supe supiste supo supimos supieron
+= sabre sabras sabra sabremos sabreis sabran sabria sabrias sabriamos sabriais sabrian sepa sepas sepamos sepais sepan sabiendo sabido
+= venir vengo vienes viene venimos venis vienen venia venias veniamos veniais venian vine viniste vino vinimos vinisteis vinieron
+= vendre vendras vendra vendremos vendreis vendran vendria vendrias vendriamos vendriais vendrian venga vengas vengamos vengais vengan viniendo venido ven
+= poner pongo pones pone ponemos poneis ponen ponia ponias poniamos poniais ponian puse pusiste puso pusimos pusisteis pusieron
+= pondre pondras pondra pondremos pondreis pondran pondria pondrias pondriamos pondriais pondrian ponga pongas pongamos pongais pongan poniendo puesto pon
+= salir salgo sales sale salimos salis salen salia salias saliamos saliais salian sali saliste salio salieron
+= saldre saldras saldra saldremos saldreis saldran saldria saldrias saldriamos saldriais saldrian salga salgas salgamos salgais salgan saliendo salido sal
+= oir oigo oyes oye oimos ois oyen oia oias oiamos oian oi oiste oyo oyeron oire oiras oira oiremos oiran oiria oirias oiriamos oirian oiga oigas oigamos oigan oyendo oido
+= traer traigo traes trae traemos traeis traen traia traias traiamos traian traje trajiste trajo trajimos trajeron traiga traigan trayendo traido
+= conocer conozco conoces conoce conocemos conoceis conocen conocia conocias conociamos conocian conoci conociste conocio conocimos conocieron
+= conocere conoceras conocera conoceremos conoceran conozca conozcas conozcamos conozcan conociendo conocido
+= parecer parezco pareces parece parecemos parecen parecia parecio parecieron parezca parezcan pareciendo parecido
+= jugar juego juegas juega jugamos jugais juegan jugaba jugue jugo jugaron juegue jueguen jugando jugado
+= caer caigo caes cae caemos caen caia cayo cayeron caiga cayendo caido
+= andar ando andas anda andamos andan andaba anduve anduvo anduvieron ande andando andado
+= valer valgo vales vale valemos valen valia valio valga valiendo valido
+= leer leo lees lee leemos leen leia lei leyo leyeron lea leyendo leido
+= reir rio ries reimos rien reia reiste rieron ria riendo reido
+= escribir escrito abrir abierto romper roto volver vuelto morir muerto resolver resuelto
+
+# ---- conversation
+= buenos buenas dias tardes noches saludo saludos muchas gracias encantado encantada
+= felices feliz navidad ano nuevo enhorabuena felicidades suerte cuidate cuidese
+= nos vemos hasta pronto otra vez luego vista proxima ocasion
+= aqui alli por favor de nada claro que vale perfecto genial estupendo

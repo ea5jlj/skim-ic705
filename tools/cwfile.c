@@ -19,7 +19,7 @@
 #include "../src/cwdec.h"
 #include "../src/callsign.h"
 #include "../src/words.h"
-#include "../src/dict_en.h"
+#include "../src/dict.h"
 #include "wav.h"
 #include <math.h>
 #include <stdio.h>
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: cwfile input.wav [-m] [-c N] [-a] [-V|-A] [-R lo-hi] [-f Hz] [-v] [-r ref.txt] [-w]\n");
         return 1;
     }
-    wd_dict(dict_idx, dict_data);              /* -w uses the English word list, as SKIM with SKIMDICT.BIN */
+    wd_dict(dict_idx, dict_data);              /* -w uses the word list, as SKIM with SKIMDICT.BIN */
     cwd_cfg_t cfg; cwd_default_cfg(&cfg);
     cfg.max_channels = 8;
     int verbose = 0, all_lines = 0, wfix = 0;

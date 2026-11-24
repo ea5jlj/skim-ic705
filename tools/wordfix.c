@@ -6,11 +6,11 @@
  *
  * usage: wordfix [-a] [-n] [-k CALL]... file...   (no file: stdin)
  *   -a       print every line, not only the changed ones
- *   -n       without the English word list (src/dict_en.c)
+ *   -n       without the word list (src/dict.c)
  *   -k CALL  a callsign to treat as already known (repeatable)
  */
 #include "../src/words.h"
-#include "../src/dict_en.h"
+#include "../src/dict.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

@@ -193,41 +193,56 @@ static int dict_join(const char *a, int na, const char *b, int nb)
     return dict_has(t, na + nb);
 }
 
-/* A glued phrase split into English words and CW words, fewest pieces first:
+/* A glued phrase split into English, Spanish and CW words, fewest pieces first:
  * "HPECUINPERSON" → "HPE CU IN PERSON", "THEMEETINGSDRDEREK" → "THE MEETINGS
- * DR DEREK" (a name may end it after DR, NAME or QTH). Only with an anchor
+ * DR DEREK", "MINOMBREESPABLO" → "MI NOMBRE ES PABLO" (a name or a place may
+ * end it after DR, NAME, QTH or NOMBRE). Only with an anchor
  * word or a number among the pieces. Returns the length written to o, or 0. */
 static int dict_split(const char *p, int n, char *o)
 {
     if (n < 6 || n > TOKMAX || is_word(p, n) || call_ok(p, n)) return 0;
     for (int i = 0; i < n; i++) if (!is_al(p[i]) && !is_dg(p[i])) return 0;
-    int np[TOKMAX + 1], from[TOKMAX + 1], anc[TOKMAX + 1], last[TOKMAX + 1];
+    int np[TOKMAX + 1], from[TOKMAX + 1], anc[TOKMAX + 1], last[TOKMAX + 1], cost[TOKMAX + 1];
     for (int i = 0; i <= n; i++) np[i] = -1;
-    int one[TOKMAX + 1], lng[TOKMAX + 1];            /* so far: a one-letter piece, a 4+ letter word */
-    np[0] = 0; anc[0] = 0; last[0] = -1; one[0] = 0; lng[0] = 0;
+    cost[0] = 0;
+    int one[TOKMAX + 1], lng[TOKMAX + 1], big[TOKMAX + 1];   /* so far: a one-letter piece, a 4+ letter
+                                                              word, a 3+ letter word that is no anchor */
+    np[0] = 0; anc[0] = 0; last[0] = -1; one[0] = 0; lng[0] = 0; big[0] = 0;
     for (int i = 1; i <= n; i++) {
         for (int j = (i > 16 ? i - 16 : 0); j < i; j++) {
             if (np[j] < 0) continue;
             int m = i - j, tail = 0;
             int ok = (m >= 2 && is_word(p + j, m)) || is_number(p + j, m) ||
                      (m == 1 && (p[j] == 'A' || p[j] == 'I'));
-            if (!ok && i == n && m >= 4 && np[j] >= 3 && last[j] >= 0 && !one[j] && lng[j]) {
-                int a = last[j];                     /* the piece before: DR, NAME or QTH */
-                if (same(p + a, j - a, "DR") || same(p + a, j - a, "NAME") || same(p + a, j - a, "QTH")) {
+            if (!ok && i == n && m >= 4 && last[j] >= 0) {
+                /* a name or a place at the end: after QTH or NOMBRE (never inside
+                 * words), or after DR or NAME behind two words, one of 4+ letters
+                 * (not CATHEDRAL, ORNAMENTAL); IS / ES may come in between */
+                int a = last[j], b = j;
+                if ((same(p + a, b - a, "IS") || same(p + a, b - a, "ES")) && last[a] >= 0) { b = a; a = last[a]; }
+                int free_ = same(p + a, b - a, "QTH") || same(p + a, b - a, "NOMBRE");
+                int strict = (same(p + a, b - a, "DR") || same(p + a, b - a, "NAME")) &&
+                             np[a] >= 2 && !one[a] && lng[a];
+                if (free_ || strict) {
                     int al = 1;
                     for (int k = j; k < i; k++) if (!is_al(p[k])) al = 0;
                     ok = tail = al;
                 }
             }
             if (!ok) continue;
-            if (np[i] < 0 || np[j] + 1 < np[i]) {
-                np[i] = np[j] + 1; from[i] = j; last[i] = j; one[i] = one[j] | (m == 1);
+            /* fewest pieces; an unknown tail costs its length, so known words
+             * cover as much as they can ("NOMBRE ES PABLO", not "NOMBRE ESPABLO") */
+            int c = cost[j] + (tail ? m : 1);
+            if (np[i] < 0 || c < cost[i]) {
+                np[i] = np[j] + 1; cost[i] = c; from[i] = j; last[i] = j; one[i] = one[j] | (m == 1);
                 lng[i] = lng[j] | (m >= 4 && !tail);
+                big[i] = big[j] | tail | (m >= 3 && !anchor(p + j, m) && !is_number(p + j, m));
                 anc[i] = anc[j] | anchor(p + j, m) | is_number(p + j, m) | tail;
             }
         }
     }
-    if (np[n] < 2 || !anc[n]) return 0;
+    /* besides the anchor, a real word of 3+ letters: "73ALAN" is not 73 AL AN */
+    if (np[n] < 2 || !anc[n] || !big[n]) return 0;
     int cut[TOKMAX + 1], nc = 0;
     for (int i = n; i > 0; i = from[i]) cut[nc++] = i;
     int on = 0, a = 0;

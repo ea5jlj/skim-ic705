@@ -612,7 +612,7 @@ static void draw(cwd_t *d, uint32_t overruns, uint32_t rate_sps, int fonttest)
 
 /* ------------------------------------------------ app */
 
-/* English word list for the word-spacing fix: SKIMDICT.BIN (tools/mkdict.py
+/* English and Spanish word list for the word-spacing fix: SKIMDICT.BIN (tools/mkdict.py
  * --bin) in the Apps folder, read into the memory left after the decoder.
  * Returns its size, or 0 when there is none (SKIM then works without it). */
 static int load_dict(uint8_t *room, uint32_t room_n)
@@ -652,7 +652,7 @@ int app_main(const struct icap_svc *svc)
     uint8_t *room = 0; uint32_t room_n = 0;          /* memory left after the decoder (word list) */
 #ifdef SKIM_HOST
     static cwd_t host_dec;                 /* simulator: 64-bit pointers */
-    static uint8_t host_room[32768];
+    static uint8_t host_room[65536];
     cwd_t *d = &host_dec;
     room = host_room; room_n = sizeof host_room;
     if (0) {

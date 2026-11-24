@@ -2,6 +2,20 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — Spanish words, own English list (all MIT)
+
+### Improvements
+
+- **Own English word list: the whole project is MIT.** The English words no longer come from SCOWL: `tools/words_en.txt`, written for this project like the Spanish list, holds common English words and CW/radio vocabulary (weather, rigs, antennas, family, travel), and `tools/mkdict.py` generates plurals, verb forms and comparatives (about 4,500 forms). SCOWL's notice and `third_party/` are gone. Measured against the SCOWL-based list: all radio logs and the seven recordings give the same text, except one more fix (`ANT ENNA` → `ANTENNA`, a radio word SCOWL lacked); the four ragchew fixes still work; none of the 1,307 common SCOWL words missing from the new list is split; 234,000-word English dictionary: 37 split (38 before). SCOWL was used only on the computer as a yardstick, never to choose the words.
+- **Spanish words in the word list.** `SKIMDICT.BIN` now also holds about 6,000 common Spanish forms, written for this project in `tools/words_es.txt` (plain words, nouns with plurals, adjectives with feminines, regular and irregular verbs with their usual forms, radio vocabulary). Accents are removed and Ñ becomes N, as in CW (`AÑO` → `ANO`). Split words are joined (`GRA CIAS` → `GRACIAS`, `ANT ENA` → `ANTENA`, `CONTA CTO` → `CONTACTO`) and glued phrases split around a CW word (`GRACIASPORELQSO` → `GRACIAS POR EL QSO`, `RST599QTHMADRID` → `RST 599 QTH MADRID`). A name or place may follow QTH or NOMBRE, with ES or IS in between: `QTHESVALENCIA` → `QTH ES VALENCIA`, `MINOMBREESPABLO` → `MI NOMBRE ES PABLO`. The list grows from 15 to 32 KB, still well inside the free memory. `src/dict_en.c/.h` are now `src/dict.c/.h`.
+
+  Checked: all radio logs and all seven recordings give exactly the same text as with the English-only list; 50,000 moderately common English words: no new splits; 234,000-word English dictionary: 38 split (35 with the English-only list), all rare. No Spanish recording yet.
+
+### Fixes
+
+- **A number is not enough to split a phrase.** `73ALAN` (a name after 73) would have become `73 AL AN` once `AL` and `AN` were words: a split into words now needs a real word of 3+ letters besides the anchor.
+- **The 4+ letter word before DR or NAME must come before it.** `NAME` itself counted, so `UNORNAMENTAL` could split as `UN OR NAME NTAL`.
+
 ## 2026-11-24 — QSO sides, English word list, smaller app
 
 ### Fixes

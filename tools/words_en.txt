@@ -1,0 +1,252 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Pablo Torres, EA5JLJ. See LICENSE.
+#
+# Common English words for the word-spacing fix (src/words.c), as people send
+# them in CW conversations. Written for this project; tools/mkdict.py expands
+# it and joins it with the Spanish list.
+#
+# Lines:
+#   = w w w        words as they are
+#   n: w w w       nouns: plural added (rig → rigs, box → boxes, city → cities)
+#   v: w w w       regular verbs: -s, -ed, -ing (work works worked working);
+#                  "stop/2" doubles the last letter (stopped stopping)
+#   a: w w w       adjectives as they are; "cold/er" adds -er -est
+#                  (colder coldest), "big/2er" doubles (bigger biggest)
+#   Irregular forms are written out with "=".
+
+# ---- function words
+= the a an and or but nor so yet if then than that this these those there here
+= what which who whom whose when where why how whether while because since though although unless until
+= as at by for from in into of off on onto out over under up upon with within without about above
+= across after against along among around before behind below beneath beside besides between beyond
+= down during except inside near outside past through throughout till toward towards via per
+= i me my mine myself you your yours yourself yourselves he him his himself she her hers herself
+= it its itself we us our ours ourselves they them their theirs themselves
+= one ones someone somebody something somewhere anyone anybody anything anywhere everyone everybody
+= everything everywhere nobody nothing nowhere none each every either neither both all any some
+= many much more most few fewer fewest less least lot lots several such own other others another
+= no not yes yeah okay ok also too very quite rather really just only even still already always never
+= ever often sometimes usually seldom once twice again almost nearly perhaps maybe probably possibly
+= certainly surely indeed anyway however otherwise therefore instead meanwhile soon later early late
+= now today tonight tomorrow yesterday ago away back forward ahead home abroad together apart alone
+= well better best worse worst far further farther enough else here there
+= can could may might must shall should will would ought
+= am is are was were be been being do does did done doing have has had having
+= wont dont doesnt didnt cant couldnt wouldnt shouldnt isnt arent wasnt werent havent hasnt hadnt
+= im ive id ill youre youve youll hes shes thats theres whats lets its
+
+# ---- numbers and time
+= zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen
+= sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred
+= thousand million hundreds thousands millions dozen
+= first second third fourth fifth sixth seventh eighth ninth tenth last next
+= monday tuesday wednesday thursday friday saturday sunday weekend weekends
+= january february march april may june july august september october november december
+= north south east west northeast northwest southeast southwest northern southern eastern western
+n: day week month year hour minute second moment morning afternoon evening night noon midnight
+n: time while season spring summer autumn fall winter holiday vacation trip
+
+# ---- radio
+n: radio rig transceiver receiver transmitter station antenna aerial dipole doublet vertical beam
+n: yagi loop wire mast tower pole tree feeder feedline cable coax balun tuner coupler amplifier amp
+n: band frequency signal report contact qso call callsign prefix locator grid square
+n: watt power battery supply panel volt amp key paddle bug keyer filter mode
+n: contest expedition activation summit park island lighthouse portable mobile
+n: operator op ham amateur club member friend neighbour neighbor colleague
+n: noise interference propagation condition fade skip opening path sunspot
+n: card certificate award log logbook computer software program laptop phone email website
+n: test fist speed copy note message greeting wish thank thanks regard regards
+= cw ssb fm am rtty ft8 qrp qro dx pota sota iota wwff hf vhf uhf
+= qsl qth qrm qrn qsb qsy qrt qrv qrl qrz qru qrs qrq rst
+= ur hr hw fb om yl xyl tnx tks pse agn cul gm ga ge gn es fer
+
+# ---- weather
+n: weather sun sunshine rain snow wind cloud fog storm thunder lightning frost ice temperature
+n: degree sky shower
+a: sunny cloudy rainy windy snowy foggy stormy wet dry/er warm/er cold/er cool/er hot/2er
+a: nice/er fine/er bright/er dark/er clear/er mild/er fresh/er heavy light/er
+
+# ---- people, places, life
+n: name family wife husband son daughter brother sister father mother dad mom mum parent child
+n: grandson granddaughter grandfather grandmother grandchild baby boy girl man woman people person
+n: friend guy lady gentleman doctor teacher engineer pilot farmer student
+n: house home garden yard garage room shack kitchen roof window door floor wall table chair bed
+n: city town village country state county province region place area street road hill mountain
+n: river lake sea ocean beach coast valley field farm forest wood park
+n: car truck bus train plane boat ship bike bicycle trip journey road flight airport
+n: job work office business company school college university hospital church shop store market
+n: life world thing way part side end point fact case place kind sort type lot number group
+n: hobby sport game music book paper news story picture photo video film show
+n: food meal breakfast lunch dinner supper coffee tea beer wine water bread cake
+n: health heart head eye ear hand foot back body leg arm
+n: problem question answer idea reason result plan chance luck pleasure honour honor favour favor
+n: dog cat horse bird animal
+n: birthday party meeting rally convention event visit
+n: idea mind voice word letter line page
+
+# ---- adjectives
+a: good bad new old/er young/er long/er short/er high/er low/er big/2er small/er little large/er
+a: great/er nice/er fine/er real true sure/er easy hard/er strong/er weak/er quick/er fast/er slow/er
+a: happy sad glad sorry tired busy free ready able full empty open closed same different
+a: important interesting possible impossible right wrong main local national international
+a: dear kind/er friendly lovely beautiful wonderful excellent perfect super fantastic amazing
+a: poor rich/er cheap/er expensive simple simpler simplest homemade homebrew
+a: black white red blue green yellow brown grey gray
+a: next last previous recent early late/er quiet/er loud/er clean/er
+a: whole half single double main extra special usual normal general best better worst worse
+
+# ---- regular verbs
+v: work call ask answer listen talk walk look want need like love hope wish thank enjoy
+v: help start finish end play stay wait try move live use open close turn return
+v: remember forget/2 learn show seem appear happen change visit travel/2 arrive retire
+v: copy receive send hear operate install repair fix check test tune connect power
+v: plan/2 stop/2 drop/2 chat/2 shop/2 prefer/2 refer/2
+v: pass miss watch reach touch push wash finish rush catch
+v: hope agree enjoy decide include continue complete believe arrive receive manage
+v: cook clean paint read rest rain snow shine snow
+v: mention suggest offer order report record note notice cover discover consider
+v: improve prepare provide describe explain expect follow allow add count print post
+v: retire relax mind join reply apply cry worry carry study marry
+v: greet meet
+
+# ---- irregular verbs
+= be am is are was were been being
+= have has had having do does did done doing go goes went gone going
+= get gets got gotten getting make makes made making take takes took taken taking
+= come comes came coming see sees saw seen seeing know knows knew known knowing
+= think thinks thought thinking say says said saying tell tells told telling
+= give gives gave given giving find finds found finding feel feels felt feeling
+= leave leaves left leaving keep keeps kept keeping let lets letting put puts putting
+= begin begins began begun beginning bring brings brought bringing buy buys bought buying
+= build builds built building hold holds held holding run runs ran running
+= sit sits sat sitting stand stands stood standing write writes wrote written writing
+= read reads reading hear hears heard hearing meet meets met meeting send sends sent sending
+= spend spends spent spending lose loses lost losing pay pays paid paying lead leads led leading
+= understand understands understood understanding speak speaks spoke spoken speaking
+= break breaks broke broken breaking choose chooses chose chosen choosing drive drives drove driven driving
+= eat eats ate eaten eating drink drinks drank drunk drinking fly flies flew flown flying
+= forget forgets forgot forgotten forgetting grow grows grew grown growing sleep sleeps slept sleeping
+= wake wakes woke woken waking win wins won winning sell sells sold selling teach teaches taught teaching
+= catch catches caught catching fall falls fell fallen falling feel cut cuts cutting set sets setting
+= shut shuts shutting hit hits hitting hurt hurts hurting cost costs costing quit
+= become becomes became becoming mean means meant meaning lie lies lay lying
+= hang hangs hung hanging light lights lit lighting
+= wear wears wore worn wearing ring rings rang rung ringing sing sings sang sung singing
+= swim swims swam swum swimming draw draws drew drawn drawing show shown
+
+# ---- conversation
+= hello hi bye goodbye thanks please welcome congratulations cheers sorry
+= good morning afternoon evening night luck fun
+= nice meet again soon later next time hope see
+= dear old man friend fellow sir madam
+= condx wx temp info pwr ant rig name hr best regards greetings vy
+= mni gud abt rprt rpt cfm cpy sri hpe cu tnks tu bk kn sk ar
+
+# ---- general vocabulary: nouns
+n: account action activity address advantage advice age agreement aim air amount animal answer apple
+n: approach area argument army art article aspect attempt attention attitude audience author authority
+n: bag ball bank bar base basis bath battle beauty bedroom beginning behaviour behavior belief benefit
+n: bill bit blood board boat bone border bottle bottom box brain branch bread break bridge brother
+n: budget building button cake camera camp campaign capital captain card care career case cash cause
+n: cell centre center century chain chair challenge chance channel chapter character charge check
+n: cheese chicken choice church circle citizen claim class client clock clothes club coat code coffee
+n: collection colour color column comment committee community competition concept concern conference
+n: connection contact content context contract control conversation corner cost council couple course
+n: court cover crowd culture cup customer cycle damage danger data date deal death debate decision
+n: definition degree demand department design desk detail development device difference difficulty
+n: dinner direction director discussion disease distance doctor document dollar dream dress drink
+n: driver duty earth economy edge editor education effect effort egg election element emergency
+n: employee energy engine entry environment equipment error event evidence example exchange exercise
+n: experience expert explanation eye face factor failure faith farm fashion fear feature fee feeling
+n: figure file finger fire fish flat flight floor flower focus foot force form fortune frame friendship
+n: front fruit fuel function fund future gain gap gas gate gift glass goal god gold government grass
+n: ground growth guest guide gun hair hall hat heat height help history hole holiday honour horse host
+n: hotel hour household husband image impact income increase individual industry information injury
+n: insurance interest internet investment issue item jacket joke journey judge key kid king knee knife
+n: knowledge lack land language law lawyer layer leader leg lesson level library light limit link list
+n: loan location lock loss love machine magazine management manager map mark market match material
+n: matter meaning measure media medicine member memory menu metal method middle milk mind minister
+n: mirror mission mistake model money mood motor mountain mouse mouth movement movie murder museum
+n: nation nature neck network newspaper nose object occasion offer officer oil opinion opportunity
+n: option order organisation organization owner pack page pain pair paper parent part partner party
+n: patient pattern payment peace pen pension period permission phase piece pilot pipe pitch plant
+n: plate platform player pocket poem police policy pool population position post pot pound practice
+n: president pressure price pride priest principle print priority prison prize process product
+n: profession profit progress project property protection public purpose quality quarter queen race
+n: range rate reaction record region relation relationship religion rent report request research
+n: resource response rest restaurant review reward rice ring risk rock role roof root rose round route
+n: row rule safety salt sample sand scale scene schedule science screen sea search seat secret section
+n: sector security sense series service session setting shape share sheet shirt shock shoe shop shot
+n: shoulder sign silver sink site situation size skill skin sky sleep smile society soil soldier
+n: solution song sound source space speaker speech speed spirit spot staff stage standard star start
+n: statement step stock stone storm strategy strength stress structure stuff style subject success
+n: sugar suit supply support surface surprise survey system tail talk tank target task tax team
+n: technology telephone television term text theory thought threat ticket tip title tool tooth top
+n: topic total touch tour track trade tradition traffic training treatment trial trouble truth turn
+n: unit user valley value van variety vehicle version view village visitor volume vote wage walk
+n: war warning waste wave wedding weight wheel winner wish wood worker writer
+= news means series species clothes thanks police people children men women feet teeth mice
+
+# ---- general vocabulary: verbs
+v: accept achieve act admit affect afford aim allow announce appear apply argue arrange attack attend
+v: avoid bake ban bear beat behave belong blame block blow boil book borrow bother bounce bow box burn
+v: calculate cancel/2 care cause celebrate challenge charge chase cheat check choose claim climb
+v: collect combine comment commit/2 compare compete complain concern conclude confirm consist contain
+v: contribute control/2 convince correct cough count create cross crowd damage dance deal deliver
+v: demand deny depend design destroy determine develop die differ direct disappear discuss dislike
+v: divide doubt dream dress earn educate employ encourage enter escape establish estimate examine
+v: exist expand explain explore express extend face fail fear fill film fit/2 float focus fold force
+v: form found gather guess handle hang hate head heat hire hunt identify ignore imagine imply import
+v: impress increase indicate influence inform insist intend introduce invent invite involve iron jump
+v: kick kill kiss knock land last laugh launch lay lean lift limit link list load lock long mark
+v: marry match measure melt miss mix name nod/2 obtain occur/2 own pack park perform pick place plant
+v: point pour practise practice pray predict present press pretend prevent produce promise protect
+v: prove publish pull punch push raise rate realise realize recognise recognize recommend reduce
+v: reflect refuse regret/2 reject release rely remain remove rent replace represent request require
+v: rescue resist respond rest result reveal ring rise risk rob/2 roll rub/2 rule sail save score
+v: search select separate serve settle share shout sign signal/2 smell smile smoke solve sort sound
+v: spell spill spoil stare state steal step/2 stick store stretch succeed suffer suggest suit supply
+v: support suppose surprise surround survive switch talk taste tend thank threaten throw tie touch
+v: train transfer/2 treat trust type unite urge value view vote wander warn waste wave weigh wonder
+v: wrap/2 yell
+= lose lost seek sought shoot shot fight fought bite bit bitten hide hid hidden ride rode ridden
+= shake shook shaken steal stole stolen strike struck swear swore sworn tear tore torn throw threw thrown
+= freeze froze frozen arise arose arisen bind bound bleed bled breed bred burst feed fed flee fled
+= forbid forbade forgive forgave forgiven lend lent lit mistake mistook mistaken overcome prove proven
+= rise rose risen seek shine shone shrink shrank sink sank sunk slide slid spin spun split spread
+= spring sprang sprung stick stuck sting stung stink stank strike swing swung undergo undertake
+= upset weep wept wind wound withdraw withdrew withdrawn
+
+# ---- general vocabulary: adjectives and adverbs
+a: active actual additional afraid alive angry annual anxious apparent appropriate attractive
+a: available average aware basic beautiful blind bored boring brave brief brilliant broad/er busy
+a: calm/er careful casual central certain cheerful chief civil classic close/er comfortable common
+a: complete complex concerned confident conscious constant correct crazy creative critical crucial
+a: cultural curious current cute dangerous dead deep/er definite delicious dependent difficult direct
+a: dirty distant domestic dramatic due eager eastern economic educational effective efficient elderly
+a: electric electronic emotional empty entire environmental equal essential even exact excited
+a: exciting existing expensive external extreme fair/er false familiar famous fat/2er favourite
+a: favorite female final financial firm/er flat/2er foreign formal former fortunate frequent friendly
+a: funny general gentle/er genuine giant global golden grand/er grateful guilty handsome healthy
+a: helpful historical honest horrible huge human hungry ideal ill independent industrial initial
+a: inner innocent intelligent internal jealous joint junior key known lazy legal likely limited
+a: logical lonely loose/er lost lucky mad male married massive mental middle military minor mobile
+a: modern moral narrow/er native natural necessary negative nervous neutral nuclear numerous obvious
+a: official ordinary original outer overall pale/er particular past patient peaceful personal
+a: physical plain/er pleasant pleased political popular positive powerful practical precious pregnant
+a: present pretty primary prime private professional proper proud/er pure/er rare/er raw reasonable
+a: regular relevant remote responsible rough/er royal rural safe/er scared scientific secret senior
+a: sensitive separate serious severe sharp/er sick silly similar sleepy smart/er smooth/er social soft/er
+a: solid sore spare specific stable steady/er sticky stiff/er straight strange/er strict/er stupid
+a: successful sudden sufficient suitable sweet/er tall/er technical temporary terrible thick/er thin/2er
+a: tight/er tiny total tough/er traditional typical ugly unable unhappy unique unknown upper urban
+a: useful useless valuable various vast visible vital warm/er wealthy weird wide/er wild/er wise/er
+a: wooden worried worth wrong young/er
+= actually almost apparently basically certainly clearly completely currently definitely directly
+= easily entirely especially eventually exactly extremely fairly finally fortunately frankly fully
+= generally gently gradually greatly happily hardly highly honestly hopefully immediately largely
+= likely luckily mainly merely mostly naturally necessarily normally obviously originally partly
+= particularly personally plainly possibly previously primarily properly quickly quietly rarely
+= readily recently regularly relatively seriously significantly similarly simply slightly slowly
+= somehow somewhat specifically strongly suddenly totally truly typically ultimately unfortunately
+= usually widely wholly
