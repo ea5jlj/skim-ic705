@@ -25,6 +25,9 @@ $(BIN)/callsign.o: src/callsign.c src/callsign.h | $(BIN)
 $(BIN)/words.o: src/words.c src/words.h src/callsign.h src/dict.h | $(BIN)
 	$(CC) $(CFLAGS) $(CORE_FLAGS) -c $< -o $@
 
+$(BIN)/pskr.o: src/pskr.c src/pskr.h | $(BIN)
+	$(CC) $(CFLAGS) $(CORE_FLAGS) -c $< -o $@
+
 $(BIN)/dict.o: src/dict.c src/dict.h | $(BIN)
 	$(CC) $(CFLAGS) $(CORE_FLAGS) -c $< -o $@
 
@@ -34,7 +37,7 @@ $(BIN)/bench: $(BIN)/bench.o $(BIN)/cwdec.o $(BIN)/synth.o
 	$(CC) $^ -lm -o $@
 
 # check that the core does not depend on libc
-check-freestanding: $(BIN)/cwdec.o $(BIN)/callsign.o $(BIN)/words.o $(BIN)/dict.o
+check-freestanding: $(BIN)/cwdec.o $(BIN)/callsign.o $(BIN)/words.o $(BIN)/dict.o $(BIN)/pskr.o
 	@nm -u $^ | grep -v ':$$' | grep . | sort -u > $(BIN)/undef.txt; \
 	 nm -g $^ | awk 'NF == 3 && $$2 != "U" { print $$3 }' | sort -u > $(BIN)/def.txt; \
 	 comm -23 $(BIN)/undef.txt $(BIN)/def.txt | grep . && echo "^ external symbols" || echo "core has no external dependencies"

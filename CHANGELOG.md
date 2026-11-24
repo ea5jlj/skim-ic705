@@ -2,6 +2,17 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — PSKReporter spots (experimental)
+
+### Improvements
+
+- **PSKReporter spots (experimental, `spot=1`).** SKIM can report the CW stations it decodes to PSKReporter, like a small skimmer. It sends the reports itself over the radio's Wi-Fi (`src/pskr.c`: UDP datagrams in PSKReporter's IPFIX format, about every five minutes, always from the same connection), with each station's exact frequency in Hz (the true one with a transverter). The firmware's `@SPOT` service was tried first, but it only adds a positive audio tone to the dial and cannot place a CW station below it, about half the stations in the passband.
+  - Only a station that names itself (`CQ X`, `DE X`, `TEST X`, `X TEST`, `X X`) in two different lines with the same letters is spotted, once an hour per band; calls guessed from a QSO next door never are. A first version that spotted on a single line would have sent DL1M, DL1NRL, YP4MCSM and YP40K, all misreads.
+  - Needs MY CALL and a position on the radio (spots wait for the locator) and Wi-Fi; nothing is sent while PSKREPORT is off for SKIM (`@MODECFG`). Every station queued and every datagram sent is logged.
+  - Checked: the receiver part of the datagram matches the example on pskreporter.info byte for byte; an independent decoder reads every field back (5-byte frequencies, negative S/N, sequence numbers, records split over several datagrams); in the simulator, which now answers `@MYCALL`, `@MYLOC`, `@MODECFG` and `@FREQ` and writes the datagrams to `PSKR.DAT` instead of sending them, the ten recordings give six correct calls and nothing when PSKREPORT is off, MY CALL is missing or there is no position yet. ASan/UBSan clean.
+  - The station table moved from the app window to the heap, to keep room in the 80 KiB window (code, variables and stack now 75 KB). The recordings give exactly the same text.
+  - Off by default.
+
 ## 2026-11-24 — documentation: upgrading
 
 - **Upgrading without losing your settings.** The installation steps said to copy `SKIM.CFG`, which on an upgrade would overwrite your `pitch`, `cwr` and other settings. Both READMEs now say: when upgrading, copy only `SKIM.APP` and `SKIMDICT.BIN` and keep your `SKIM.CFG`; settings added later take their defaults.

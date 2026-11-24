@@ -27,8 +27,9 @@ if [ "$STEP" = all ] || [ "$STEP" = radio ] || [ "$STEP" = release ]; then
   # size, so image + BSS + stack fit the 80 KiB app window with room to spare
   $GCC $DF -Os -c ../src/callsign.c -o $B/callsign.o
   $GCC $DF -Os -c ../src/words.c -o $B/words.o
+  $GCC $DF -Os -c ../src/pskr.c -o $B/pskr.o
   $GCC $DF -Os -c skim.c -o $B/skim.o
-  $GCC $CF $LF $B/icap_start.o $B/skim.o $B/cwdec.o $B/callsign.o $B/words.o -lgcc -o $B/skim.elf
+  $GCC $CF $LF $B/icap_start.o $B/skim.o $B/cwdec.o $B/callsign.o $B/words.o $B/pskr.o -lgcc -o $B/skim.elf
   # nothing external: everything must be inside the app
   if ${GCC%gcc}nm -u $B/skim.elf | grep -q .; then
     echo "ERROR: unresolved symbols:"; ${GCC%gcc}nm -u $B/skim.elf; exit 1
@@ -39,7 +40,7 @@ if [ "$STEP" = all ] || [ "$STEP" = radio ] || [ "$STEP" = release ]; then
   python3 $T/mkapp.py $B/skim.elf $B/SKIM.APP --name SKIM --models 3 --stack 16384 --abi 3 --background --mode SKIM:keep
 fi
 if [ "$STEP" = all ] || [ "$STEP" = sim ] || [ "$STEP" = release ]; then
-  ${CC:-cc} -O2 -std=c99 -DSKIM_HOST -Wall -I$SDK -o $B/icapsim icapsim.c skim.c ../src/cwdec.c ../src/callsign.c ../src/words.c ../tools/wav.c -lm
+  ${CC:-cc} -O2 -std=c99 -DSKIM_HOST -Wall -I$SDK -o $B/icapsim icapsim.c skim.c ../src/cwdec.c ../src/callsign.c ../src/words.c ../src/pskr.c ../tools/wav.c -lm
 fi
 if [ "$STEP" = release ]; then
   mkdir -p ../app

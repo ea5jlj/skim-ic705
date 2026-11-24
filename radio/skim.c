@@ -38,6 +38,9 @@
 #include "../src/cwdec.h"
 #include "../src/callsign.h"
 #include "../src/words.h"
+#include "../src/pskr.h"
+
+#define SKIM_VERSION "2026.11.24"     /* shown to PSKReporter as the decoding software */
 
 /* ------------------------------------------------ minimal libc (the compiler
  * may emit calls to these for struct copies). The desktop simulator (SKIM_HOST)
@@ -102,8 +105,8 @@ static int keyis(const char *line, const char *key)
 
 static struct {
     int mode, det, chans, cols, dcols, decode, log, wpm;
-    int tmin, tmax, tone, spec, fonttest, pause, calls, pitch, cwr, clean, words, logs;
-} cfg = { CWD_MODE_MULTI, CWD_DET_THRESHOLD, 8, 30, 40, 1, 1, 20, 250, 2500, 0, 2, 0, 1500, 1, 600, 0, 1, 1, 10 };
+    int tmin, tmax, tone, spec, fonttest, pause, calls, pitch, cwr, clean, words, logs, spot;
+} cfg = { CWD_MODE_MULTI, CWD_DET_THRESHOLD, 8, 30, 40, 1, 1, 20, 250, 2500, 0, 2, 0, 1500, 1, 600, 0, 1, 1, 10, 0 };
 
 /* not inlined: its 3 KB buffer must leave the stack once the settings are read,
  * or it stays under app_main for the whole session */
@@ -146,6 +149,7 @@ __attribute__((noinline)) static void read_cfg(void)
             else if (keyis(p, "decode")) cfg.decode = sval(v);
             else if (keyis(p, "log")) cfg.log = sval(v);
             else if (keyis(p, "logs")) cfg.logs = sval(v);
+            else if (keyis(p, "spot")) cfg.spot = sval(v);
         }
         *e = c;
         p = e;
@@ -175,6 +179,7 @@ static struct {
     uint32_t dial_hz;   /* dial frequency when the phrase started */
     float    tone;      /* audio tone of the phrase being built */
     uint32_t last_ms;   /* last character received */
+    float    snr;       /* signal/noise of the channel (linear) when text last came */
 } ch[CWD_MAXCH];
 
 /* single-mode panel: word-wrapped lines */
@@ -234,7 +239,8 @@ static int radio_mode = RMODE_CW;
 #endif
 #define PAIR_HZ 100                     /* a QSO partner is within this... */
 #define PAIR_MS 120000u                 /* ...and was heard in the last 2 minutes */
-static struct { int32_t key; uint32_t last; int used; cs_t cs; } stn[NSTN];
+typedef struct { int32_t key; uint32_t last; int used; cs_t cs; } stn_t;
+static stn_t *stn;                      /* NSTN stations, in the heap (the app window is small) */
 static int ch_st[CWD_MAXCH];
 
 #define DIAL_POLL_MS   100u     /* how often the dial is read */
@@ -352,6 +358,200 @@ static char *sfreq_station(char *p, uint32_t dial, float tone)
     return p;
 }
 
+/* ------------------------------------------------ PSKReporter spots
+ * With spot=1 in SKIM.CFG, a station that names itself ("CQ X", "DE X",
+ * "TEST X", "X TEST" or "X X") in two different lines, with exactly the same
+ * letters, is reported to PSKReporter, once an hour per band. SKIM sends the
+ * reports itself (src/pskr.c: UDP to report.pskreporter.info, about every
+ * five minutes), with the station's own frequency: the firmware's @SPOT
+ * service only adds a positive audio tone to the dial, which cannot place a
+ * CW station below the dial. The owner's call and locator come from @MYCALL
+ * and @MYLOC; nothing is sent while PSKREPORT is off for SKIM (@MODECFG).
+ * Every station queued and every datagram sent is written to the log. */
+#define SPOT_N    24
+#define SPOT_MS   3600000u              /* the same call on the same band: once an hour */
+#define FLUSH_MS  300000u               /* a datagram at most every 5 minutes... */
+#define FLUSH_JIT 30000u                /* ...plus up to 30 s, so stations do not send together */
+static struct { char call[CS_LEN + 1]; uint32_t t; uint32_t band; int seen; int done; } spotted[SPOT_N];
+static pskr_t  *ps;                     /* in the heap, after the word list; 0 = spots off */
+static uint8_t *ps_buf;
+static int      ps_net = -1, ps_off_logged;
+static uint32_t ps_next, ps_rnd = 12345u;
+
+static void logline(const char *a, const char *b)
+{
+    if (log_fd < 0) return;
+    char m[128], *q = scpy(m, a); if (b) q = scpy(q, b);
+    *q++ = '\r'; *q++ = '\n';
+    icap_write(log_fd, m, (uint32_t)(q - m));
+}
+
+static int read_vfile(const char *name, char *b, int max)   /* one line of a firmware virtual file */
+{
+    b[0] = 0;                                                    /* empty if there is none */
+    int fd = icap_open(name, ICAP_O_READ);
+    if (fd < 0) return 0;
+    int n = icap_read(fd, b, (uint32_t)(max - 1));
+    icap_close(fd);
+    if (n < 0) n = 0;
+    b[n] = 0;
+    while (n > 0 && (b[n - 1] == '\n' || b[n - 1] == '\r' || b[n - 1] == ' ')) b[--n] = 0;
+    return n;
+}
+
+static int tok_is(const char *a, int n, const char *k) { int i = 0; for (; i < n; i++) if (k[i] != a[i]) return 0; return k[n] == 0; }
+
+/* the station names itself in this line */
+static int self_named(const char *body, const char *call)
+{
+    const char *tk[24]; int tl[24], nt = 0;
+    for (const char *p = body; *p && nt < 24;) {
+        while (*p == ' ') p++;
+        if (!*p) break;
+        tk[nt] = p; while (*p && *p != ' ') p++; tl[nt] = (int)(p - tk[nt]); nt++;
+    }
+    int seen = 0;
+    for (int i = 0; i < nt; i++) {
+        if (!tok_is(tk[i], tl[i], call)) continue;
+        if (++seen >= 2) return 1;                                     /* "X X" */
+        if (i > 0 && (tok_is(tk[i - 1], tl[i - 1], "DE") || tok_is(tk[i - 1], tl[i - 1], "CQ") ||
+                      tok_is(tk[i - 1], tl[i - 1], "TEST"))) return 1;
+        if (i + 1 < nt && tok_is(tk[i + 1], tl[i + 1], "TEST")) return 1;
+    }
+    return 0;
+}
+
+static int snr_db(float snr)                    /* envelope S/N (linear amplitude) in dB */
+{
+    int db = 0;
+    while (snr >= 1.12202f && db < 60) { snr *= 0.89125f; db++; }   /* 1 dB steps, no libm */
+    return db;
+}
+
+/* the true dial in Hz (transverter-aware) from @FREQ; 0 if the firmware has none */
+static uint64_t true_dial(void)
+{
+    char b[96];
+    if (!read_vfile("@FREQ", b, sizeof b)) return 0;
+    for (char *p = b; *p; p++)
+        if (p[0] == 'f' && p[1] == '=' && (p == b || p[-1] == ' ')) {
+            uint64_t v = 0;
+            for (p += 2; *p >= '0' && *p <= '9'; p++) v = v * 10u + (uint64_t)(*p - '0');
+            return v;
+        }
+    return 0;
+}
+
+static uint32_t utc_now(void)                   /* seconds since 1970; 0 if the clock is not set */
+{
+    struct icap_time t;
+    if (icap_clock_now(&t) != 0 || t.year < 2024) return 0;
+    return pskr_unix(t.year, t.mon, t.day, t.hour, t.min, t.sec);
+}
+
+/* spots on: room for the queue and a datagram, MY CALL and a locator */
+static void spot_init(uint8_t *mem, uint32_t n, uint32_t now)
+{
+    if (!cfg.spot) return;
+    uint32_t need = ((uint32_t)sizeof(pskr_t) + 7u) & ~7u;
+    if (!mem || n < need + PSKR_MAXDG) { logline("# spots: off (no memory left)", 0); return; }
+    char call[32], loc[16];
+    if (!read_vfile("@MYCALL", call, sizeof call)) { logline("# spots: off (set MY CALL on the radio)", 0); return; }
+    read_vfile("@MYLOC", loc, sizeof loc);       /* may come later, from the GPS */
+    ps = (pskr_t *)(void *)mem;
+    ps_buf = mem + need;
+    ps_rnd ^= now * 2654435761u ^ utc_now();
+    pskr_init(ps, call, loc, "SKIM " SKIM_VERSION, "CW", ps_rnd);
+    ps_next = now + FLUSH_MS + (ps_rnd >> 8) % FLUSH_JIT;
+    logline("# spots: on, as ", call);
+}
+
+static void spot_flush(uint32_t now, int last)
+{
+    if (!ps || !ps->nq) return;
+    if (!last && now - ps_next > 0x80000000u && ps->nq < 30) return;      /* not yet, and room left */
+    ps_rnd = ps_rnd * 1103515245u + 12345u;
+    ps_next = now + FLUSH_MS + (ps_rnd >> 8) % FLUSH_JIT;
+    char b[64];
+    if (read_vfile("@MODECFG", b, sizeof b)) {    /* the owner's PSKREPORT switch for SKIM */
+        for (char *p = b; *p; p++)
+            if (p[0] == 'p' && p[1] == 's' && p[2] == 'k' && p[3] == 'r' && p[4] == '=' && p[5] == '0') {
+                if (!ps_off_logged) logline("# spots: not sent, PSKREPORT is off for SKIM (DECODE > SET)", 0);
+                ps_off_logged = 1; ps->nq = 0; return;
+            }
+    }
+    if (!ps->my_loc[0] && read_vfile("@MYLOC", b, sizeof b)) {
+        for (int i = 0; i < 7 && b[i]; i++) { ps->my_loc[i] = b[i]; ps->my_loc[i + 1] = 0; }
+    }
+    if (!ps->my_loc[0]) {                       /* PSKReporter needs the receiver's locator */
+        if (!ps_off_logged) logline("# spots: waiting for a position (GPS or manual) on the radio", 0);
+        ps_off_logged = 1;
+        return;
+    }
+    if (icap_net_status() != 0) { logline("# spots: waiting, no network", 0); return; }
+    if (ps_net < 0) {
+        ps_net = icap_net_open("report.pskreporter.info", 4739, ICAP_NET_UDP, 3000);
+        if (ps_net < 0) { logline("# spots: cannot reach report.pskreporter.info", 0); return; }
+    }
+    uint32_t t = utc_now();
+    int sent = 0;
+    while (ps->nq) {
+        int left = ps->nq;
+        int len = pskr_build(ps, ps_buf, PSKR_MAXDG, t);
+        if (len <= 0) break;
+        if (icap_net_send(ps_net, ps_buf, (uint32_t)len, 2000) < 0) {
+            icap_net_close(ps_net); ps_net = -1;
+            logline("# spots: send failed, will retry", 0);
+            break;
+        }
+        sent += left - ps->nq;
+    }
+    if (sent) { char m[48], *q = scpy(m, "# spots sent: "); q = sint(q, sent, 0); scpy(q, " stations"); logline(m, 0); }
+}
+
+static void spot(int k, float tone, const char *body, uint32_t now)
+{
+    const char *call = chan_call(k);
+    if (!ps || !call[0] || cfg.pitch <= 0 || radio_mode != RMODE_CW || !self_named(body, call)) return;
+    uint64_t dial = true_dial();
+    if (!dial) dial = ch[k].dial_hz;
+    float off = (float)cfg.pitch - tone;                            /* station = dial + off (CW) */
+    if (cfg.cwr) off = -off;
+    uint64_t f = (uint64_t)((int64_t)dial + (int64_t)(off >= 0 ? off + 0.5f : off - 0.5f));
+    uint32_t band = (uint32_t)(f / 1000000u);
+    /* confirmed first: the same call, named by the station in two different
+     * lines. A misread (YP4MCSM for YP40CSM, DL1M for DL1MRL) rarely repeats. */
+    int slot = -1, lru = 0;
+    for (int i = 0; i < SPOT_N; i++) {
+        if (spotted[i].call[0] && tok_is(call, slen(call), spotted[i].call)) { slot = i; break; }
+        if (!spotted[i].call[0] || spotted[i].t < spotted[lru].t) lru = i;
+    }
+    if (slot >= 0 && (now - spotted[slot].t >= SPOT_MS || spotted[slot].band != band)) {
+        spotted[slot].seen = 0; spotted[slot].done = 0;
+    }
+    if (slot < 0) {
+        slot = lru;
+        for (int i = 0; i < CS_LEN && call[i]; i++) spotted[slot].call[i] = call[i];
+        spotted[slot].call[slen(call) < CS_LEN ? slen(call) : CS_LEN] = 0;
+        spotted[slot].seen = 0; spotted[slot].done = 0;
+    }
+    spotted[slot].band = band;
+    if (spotted[slot].done) return;
+    spotted[slot].t = now;
+    if (++spotted[slot].seen < 2) return;
+    uint32_t t = utc_now();
+    if (!t) return;                                                 /* no clock: not reported */
+    spotted[slot].done = 1;
+    pskr_add(ps, call, f, snr_db(ch[k].snr), t);
+    if (log_fd >= 0) {                                              /* "# spot: EA4XYZ 7025.0 (18 dB)" */
+        char m[64], *r = scpy(m, "# spot: "); r = scpy(r, call); *r++ = ' ';
+        uint32_t dk = (uint32_t)((f + 50u) / 100u);                 /* tenths of kHz */
+        r = sint(r, (int)(dk / 10u), 0); *r++ = '.'; *r++ = (char)('0' + dk % 10u);
+        r = scpy(r, " ("); r = sint(r, snr_db(ch[k].snr), 0); r = scpy(r, " dB)");
+        *r = 0; logline(m, 0);
+    }
+}
+
 static void send_line(int k, float tone)
 {
     if (ch[k].ln == 0) return;
@@ -388,6 +588,7 @@ static void send_line(int k, float tone)
     /* the callsign logic reads the finished line, with its spacing fixed */
     cs_feed(CS(k), body);
     cs_feed(CS(k), " ");
+    spot(k, tone, body, icap_ticks());
 
     /* DECODE: "7029.9 CQ EA4XYZ: text" / "7029.9 EA4XYZ>DL1ABC: text" / "7029.9 text" */
     char out[180], *p = out;
@@ -685,6 +886,17 @@ int app_main(const struct icap_svc *svc)
         while (!icap_should_stop()) icap_sleep_ms(200);
         return 0;
     }
+    {   /* the station table, first in the memory left after the decoder */
+        uint32_t need = ((uint32_t)(sizeof(stn_t) * NSTN) + 7u) & ~7u;
+        if (!room || room_n < need) {
+            icap_print("Out of memory for the stations");
+            while (!icap_should_stop()) icap_sleep_ms(200);
+            return 0;
+        }
+        stn = (stn_t *)(void *)room;
+        for (uint32_t i = 0; i < need; i++) room[i] = 0;
+        room += need; room_n -= need;
+    }
 
     int dict_bytes = cfg.words ? load_dict(room, room_n) : 0;
 
@@ -759,6 +971,11 @@ int app_main(const struct icap_svc *svc)
     uint32_t dial_prev = 0, t_dial = icap_ticks(), t_moved = 0, tunes = 0;
     int tuning = 0;
 
+    {   /* PSKReporter spots: the memory after the word list */
+        uint32_t used = dict_bytes > 0 ? (((uint32_t)dict_bytes + 7u) & ~7u) : 0;
+        spot_init(room && room_n > used ? room + used : 0, room && room_n > used ? room_n - used : 0, icap_ticks());
+    }
+
     while (!icap_should_stop()) {
         int n = icap_audio_read(buf, 160);
         uint32_t now = icap_ticks();
@@ -779,7 +996,7 @@ int app_main(const struct icap_svc *svc)
             for (int k = 0; k < cwd_channels(d); k++) {
                 if (!(mask & (1u << k))) continue;
                 int m = cwd_take(d, k, txt, sizeof txt);
-                if (m > 0) { cwd_status_t s; cwd_status(d, k, &s); add_text(k, txt, s.tone_hz, now); }
+                if (m > 0) { cwd_status_t s; cwd_status(d, k, &s); ch[k].snr = s.snr; add_text(k, txt, s.tone_hz, now); }
             }
             icap_yield();               /* after every 20 ms block: the radio's UI stays responsive */
         }
@@ -812,7 +1029,7 @@ int app_main(const struct icap_svc *svc)
                 cwd_status_t s; cwd_status(d, k, &s);
                 if (!s.held || now - ch[k].last_ms > 4u * (uint32_t)cfg.pause) send_line(k, ch[k].tone);
             }
-        if (now - t_rate >= 1000u) { rate = got; got = 0; t_rate = now; }
+        if (now - t_rate >= 1000u) { rate = got; got = 0; t_rate = now; spot_flush(now, 0); }
         if (now - t_load >= 60000u && audio_n > 0) {
             if (log_fd >= 0) {          /* "# load: 9% (8 channels), audio lost: 0" */
                 char m[128], *q = scpy(m, "# load: ");
@@ -862,6 +1079,8 @@ int app_main(const struct icap_svc *svc)
         if (m > 0) add_text(k, txt, s.tone_hz, icap_ticks());
         send_line(k, ch[k].tone);
     }
+    spot_flush(icap_ticks(), 1);                /* what is left in the queue */
+    if (ps_net >= 0) icap_net_close(ps_net);
     if (log_fd >= 0) icap_close(log_fd);
     return 0;
 }

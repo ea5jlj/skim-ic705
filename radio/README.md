@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `286b7cd07906898af58c7ed0a6baca3e72817a8489326f1f6b4affdb78608fb3` |
+| `app/SKIM.APP` | `20ae60c4b6e46231c2e77441564a33a0aa3544e0b6e384f84979df5c957d19f0` |
 | `app/SKIMDICT.BIN` | `652ca556d0ee18fd15fcc879471a3e0b69d9360939ed546ef2379bc01e7fbda3` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
@@ -68,6 +68,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 | `det` | thr | Detector: `thr` (threshold), `vit` (Viterbi) or `auto`. `thr` works best on real audio so far. |
 | `log` | 1 | Write `SKIMnn.LOG` (one file per session) in the Apps folder. |
 | `logs` | 10 | How many session logs to keep (1–98). At start SKIM deletes the older ones. |
+| `spot` | 0 | 1 = report CW stations to PSKReporter over Wi-Fi (experimental, see [PSKReporter spots](#pskreporter-spots-experimental)). |
 | `cols`, `spec`, `fonttest` | | Only for the app's own window (MENU > SET > Apps > SKIM), which is not needed in normal use. |
 
 ## How it works
@@ -99,6 +100,35 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
   - callsigns already identified on the band, or repeated in the line, are preferred (`OS5ZK` next to `OS5Z` → `OS5Z K`);
   - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `HIDE`, `COWBOYS`, `OKFRANCIS`) are left alone: over the 234,000 words of an English dictionary, 34 are split (all rare: GUDGEON, NONORNAMENTAL…). The callsign detection reads the fixed line.
 
+## PSKReporter spots (experimental)
+
+With `spot=1` in `SKIM.CFG`, SKIM reports the CW stations it decodes to [PSKReporter](https://pskreporter.info/), like a small skimmer. SKIM sends the reports itself, over the radio's Wi-Fi, in PSKReporter's own format ([developer information](https://pskreporter.info/pskdev.html)), with each station's frequency as SKIM shows it, to the hertz. (The firmware's `@SPOT` service is not used: it can only add a positive audio tone to the dial, which cannot place a CW station below the dial.)
+
+To send spots the radio needs, besides `spot=1`:
+- **MY CALL** set: it is the receiver call;
+- a **position** (internal GPS or manual), from which the locator is taken. Until there is one, spots wait in a queue;
+- a **Wi-Fi** network;
+- **PSKREPORT on** for SKIM, on the DECODE screen, **SET**, when SKIM was started as a decoder mode (RTTY button). With it off, nothing is sent.
+
+What is reported:
+- only a station that names itself, with exactly the same letters, in **two different lines** (`CQ X`, `DE X`, `TEST X`, `X TEST` or `X X`). A misread call (`YP4MCSM` for `YP40CSM`) rarely repeats, so it is not spotted. Calls only guessed from a QSO next door are never spotted;
+- each call **once an hour per band**, as PSKReporter asks;
+- mode `CW`, the frequency in Hz (the true one with a transverter, from `@FREQ`), SKIM's own S/N estimate in dB, and the time from the radio's clock (PSKReporter corrects a clock that is off).
+
+Reports are sent in one UDP datagram about every five minutes (sooner if 30 stations are waiting), plus one when SKIM stops, always from the same connection, as PSKReporter asks. SKIM shows up there as `SKIM 2026.11.24`.
+
+The log shows every station queued and every datagram sent:
+
+```
+# spots: on, as EA5JLJ
+# spot: IV3ZXF 7009.0 (18 dB)
+# spots sent: 3 stations
+```
+
+or why nothing is sent (`# spots: off (set MY CALL on the radio)`, `# spots: waiting for a position (GPS or manual) on the radio`, `# spots: not sent, PSKREPORT is off for SKIM (DECODE > SET)`, `# spots: waiting, no network`).
+
+Check the first spots on PSKReporter (*Show reception reports by* your call) against the `# spot:` lines in the log. Sending a datagram takes a moment: if the `# load:` line shows audio lost every five minutes, say so.
+
 ## Logs
 
 `SKIMnn.LOG` (`SKIM01.LOG`, `SKIM02.LOG`…, one per session) starts with a header and logs the radio's mode code when it changes. Then it has one line per phrase:
@@ -129,7 +159,7 @@ sh radio/build.sh          # build/SKIM.APP and build/icapsim
 
 - **Build options:** the same as the SDK's reference decoders (Cortex-A9, NEON/VFPv3 hard-float, freestanding). The script fails if any external symbol is left unresolved.
 - **Packaging:** the app is packed with `--abi 3 --background --mode SKIM:keep`. `:keep` leaves the radio's mode alone, so the key keeps working. With the default `usbd` the radio switches to USB-D and the key does nothing.
-- **Size:** about 44 KB of code (the text handling is built for size, the decoder for speed). The decoder state (~157 KB with 12 channels) and the word list (32 KB, read from `SKIMDICT.BIN`) live in the app heap (`icap_heap()`), which is about 240 KB on the IC-705.
+- **Size:** about 53 KB of code (the text handling is built for size, the decoder for speed), 6 KB of variables and a 16 KB stack, inside the 80 KiB app window. The decoder state (~157 KB with 12 channels), the station table (4 KB), the word list (32 KB, read from `SKIMDICT.BIN`) and the PSKReporter queue (3 KB) live in the app heap (`icap_heap()`), which is about 240 KB on the IC-705.
 
 ### Testing on a computer
 
