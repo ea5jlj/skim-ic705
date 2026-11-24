@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `fe925b4126f6406bff5bd5251f316fd81fc5e8dbdf89eaa9f5fb73d4c4cc2b59` |
+| `app/SKIM.APP` | `05a4d14a19da236184cb72461d8731a401029bf0cadaf381525ed8f9027ad64c` |
 | `app/SKIMDICT.BIN` | `56d07ea645a359175508c8fa2499e9a688b8ba7fe3e2492ff106152331049448` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.

@@ -23,6 +23,17 @@ static const struct { const char *w; char strong; } vocab[] = {
     {"HW",S}, {"VY",S}, {"OM",S}, {"YL",S}, {"XYL",S}, {"DX",S}, {"NR",S}, {"TNK",S},
     {"EE",S}, {"ABT",S}, {"RPT",S}, {"RPRT",S}, {"CU",S}, {"HPE",S}, {"MNI",S},
     {"CONDX",S}, {"GUD",S},
+    /* from common CW abbreviation lists (W5WWW, W3DF, giangrandi.org, Wikipedia); the
+     * ones that hide inside English words are weak (URS, WID, GND…) */
+    {"ARND",S}, {"BTR",S}, {"BTW",S}, {"BTWN",S}, {"CUD",S}, {"WUD",W}, {"SHUD",S}, {"CUZ",S},
+    {"BECUZ",S}, {"ENUF",S}, {"KNW",S}, {"LSN",S}, {"SND",S}, {"TMW",S}, {"TDY",S},
+    {"THX",S}, {"URS",W}, {"YRS",S}, {"WID",W}, {"CONGRATS",S}, {"HNY",S},
+    {"UFB",S}, {"CLDY",S}, {"CLR",S}, {"OVC",S}, {"SNW",S}, {"HVY",S}, {"RCVR",S}, {"XCVR",S},
+    {"TCVR",S}, {"XMTR",S}, {"XTAL",S}, {"GND",W}, {"STN",S}, {"WTS",S},
+    {"SIGS",S}, {"FREQ",S}, {"FONE",S}, {"CNTCT",S}, {"MSG",S}, {"BURO",S},
+    {"MGR",S}, {"OPR",W}, {"WKD",S}, {"WKG",S}, {"WRK",S}, {"WPM",S}, {"RCVD",S}, {"TFC",S},
+    {"PFX",S}, {"SFX",S}, {"QSLL",S}, {"SWL",S}, {"DWN",S}, {"FWD",S}, {"GRT",S}, {"SRY",S},
+    {"ANS",W}, {"ADDR",S},
     {"ES",W}, {"FER",W}, {"OP",W}, {"TEE",W}, {"HI",W}, {"OK",W},
     {"INFO",W}, {"DR",W}, {"GD",W}, {"BEST",W}, {"CALL",W},
     {"NW",W}, {"NIL",W}, {"ALL",W}, {"WATTS",W}, {"WATT",W}, {"MY",W}, {"IS",W},
@@ -169,16 +180,16 @@ static int dict_has(const char *p, int n)
 
 static int is_word(const char *p, int n) { return dict_has(p, n) || vocab_find(p, n) >= 0; }
 
-/* CW abbreviations of 3+ letters that do not hide inside English words: a
- * glued token is split into English words only around one of them (or a
- * number), so plain words such as COWBOYS or OFFBEAT stay whole */
+/* CW abbreviations that do not hide inside English words: a glued token is
+ * split into English words only around one of them (or a number), so plain
+ * words such as COWBOYS, OFFBEAT, VERTICES (VERT) or SUBTRACT (BTR) stay whole */
 static int anchor(const char *p, int n)
 {
-    if (n < 3 || vocab_find(p, n) != 1) return 0;
-    static const char *const no[] = { "ANT", "RIG", "TEST", "NAME", "CUL", "MNI", "AGN", "XYL", "GUD",
-                                      "PSE", "RST", "RPT", 0 };
-    for (int i = 0; no[i]; i++) if (same(p, n, no[i])) return 0;
-    return 1;
+    static const char *const yes[] = { "QTH", "QSL", "QRZ", "QRL", "QSO", "QRM", "QRN", "QSB", "QSY",
+        "QRP", "QRO", "QRS", "QRQ", "QRU", "QRV", "QRT", "QSK", "TNX", "TKS", "CFM", "CPY", "BCNU",
+        "SRI", "HIHI", "PWR", "TNK", "ABT", "RPRT", "HPE", "CONDX", 0 };
+    for (int i = 0; yes[i]; i++) if (same(p, n, yes[i])) return 1;
+    return 0;
 }
 
 /* "TH" + "ERE" → "THERE": two pieces that make a common word, when they are

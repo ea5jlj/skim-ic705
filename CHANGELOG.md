@@ -2,6 +2,15 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — more CW abbreviations
+
+### Improvements
+
+- **More CW abbreviations.** About 55 common abbreviations from published CW lists (W5WWW, W3DF, giangrandi.org, Wikipedia) are now known to the word-spacing fix, so glued ones split: `TNXFERRCVDSIGS` → `TNX FER RCVD SIGS`, `SRYQRMHVY` → `SRY QRM HVY`, `MYRIGXCVR100WTS` → `MY RIG XCVR 100 WTS`, `TDYCLRWX` → `TDY CLR WX`, `CONGRATSOM` → `CONGRATS OM`. Among them: ARND, BTR, BTW, CUD, WUD, SHUD, CUZ, ENUF, KNW, LSN, SND, TMW, TDY, THX, YRS, HNY, UFB, CLDY, CLR, OVC, SNW, HVY, RCVR, XCVR, TCVR, XMTR, XTAL, STN, WTS, SIGS, FREQ, CNTCT, MSG, BURO, WKD, WRK, WPM, RCVD, PFX, QSLL, GRT, SRY.
+  - Left out after measuring: the two-letter ones (TX, RX, HV, WL, BN…), because they stopped split callsigns from being joined (`DF8 WL` stayed apart); CUAGN, which kept `CU AGN` glued; VERT, LIL and SKED, which split CULVERT, GALILEE and TUSKED. ANS, URS, WID, WUD, GND and OPR are weak words, as they hide inside English words (DEANS, DETOURS).
+  - Only a fixed list of unmistakable abbreviations (QTH, QSO, TNX, HPE, RPRT…) may anchor a split into English words, so the new ones never split words like VERTICES or SUBTRACT.
+  - Checked: no change on any radio log, 234,000-word dictionary still 37 split, 50,000 moderately common words still 10, no letter changed.
+
 ## 2026-11-24 — Spanish words, own English list (all MIT)
 
 ### Improvements
