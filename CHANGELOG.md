@@ -2,6 +2,10 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — documentation: upgrading
+
+- **Upgrading without losing your settings.** The installation steps said to copy `SKIM.CFG`, which on an upgrade would overwrite your `pitch`, `cwr` and other settings. Both READMEs now say: when upgrading, copy only `SKIM.APP` and `SKIMDICT.BIN` and keep your `SKIM.CFG`; settings added later take their defaults.
+
 ## 2026-11-24 — documentation: 8-app limit
 
 - **The radio lists at most 8 apps.** With SQ6EMM's full app bundle in `Apps`, SKIM does not appear in the Apps menu or on the RTTY button until one unused app is moved out of the folder. Found by a user and confirmed: it had also happened on the first install here. Now in the installation steps of both READMEs and in the known limitations.

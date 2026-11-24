@@ -33,6 +33,8 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
 
    **At most 8 apps.** The radio lists at most 8 apps. If SQ6EMM's full app bundle (FT8, JT4, PI4, Q65, WSPR…) is already in `Apps`, SKIM does not show up, neither in **MENU › SET › Apps** nor on the RTTY button, and a rescan may stay on "reading SD card". Move one app you do not use (its `.APP` and `.CFG`) to a folder outside `Apps`, and SKIM appears. Confirmed by two users; not documented in the SDK.
+
+   **Upgrading.** Copy only `SKIM.APP` and `SKIMDICT.BIN` over the old ones, and **keep your `SKIM.CFG`**: it holds your `pitch`, `cwr` and other settings, and copying the new one would reset them. Settings added in newer versions take their default values when they are missing from your file; to use one, copy its line from the new `SKIM.CFG` into yours. [CHANGELOG.md](../CHANGELOG.md) lists what changed in each version.
 2. Set your **CW PITCH** in `SKIM.CFG` (`pitch=600`). The app cannot read it from the radio, and it is needed to turn each station's audio tone into its real frequency. 600 Hz is the IC-705 factory default. To see yours, press the **MULTI** knob in CW mode and look at **CW PITCH**, then put the same value here. If it does not match, every frequency shown will be off by the difference (for example 200 Hz off if your pitch is 800 Hz). If you use CW-R, also set `cwr=1`.
 
 ## Use
