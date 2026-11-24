@@ -2,6 +2,22 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — ragchew values, cut numbers, self-QSO labels
+
+### Improvements
+
+From a recorded ragchew between IV3ZXF and 4O3RB/OE9IBI, full of glued words:
+- **Values after RIG / PWR / WX IS:** `RIGISYAESUFT` → `RIG IS YAESUFT`, `PWRIS2TTW` → `PWR IS 2TTW`, `WXISSUNNY` → `WX IS SUNNY`. Not after ANT or OP, which would split ANTISEPTIC and OPISTHOGRAPH.
+- **Numbers in cut figures** (T or O for 0, N for 9, W for watts) count as numbers: `2TTW`, `100W`, `58N`. A call whose suffix is cut figures ending in W (`IS2TTW`, `IS100W`) is read as IS + power. Calls such as OK1TN are not affected, nor contest exchanges such as `5NNT36`.
+- **Places after NR (near):** `NRTRIESTE` → `NR TRIESTE`, `QTHNRTRIESTE` → `QTH NR TRIESTE`. A name or place at the end now costs half its length, and a two-letter word that is no CW word closing a token costs more, so a name is not cut into words (`TRIES TE`).
+- **`DROM` → `DR OM`, `73 73` before `7373`** (`7373CIAOFROMITALY` → `73 73 CIAO FROM ITALY`); CIAO and country names added to the English list; WX may anchor a split (`WXSUNNYSUNNY` → `WX SUNNY SUNNY`).
+
+### Fixes
+
+- **A station shown working itself.** `OE9EBI>OE9IBI` and `ON8V>ON8VA`: a QSO partner one character away from the station's own call is a misread of it and is no longer shown.
+
+Checked: the ten recordings and all radio logs change only for the better (no letter changed); 234,000-word dictionary still 37 split, 50,000 moderately common words still 10, 1,307 common words still 0; half a million random lines under ASan/UBSan; stack still about 11 of 16 KB.
+
 ## 2026-11-24 — code review fixes
 
 ### Fixes (code review)

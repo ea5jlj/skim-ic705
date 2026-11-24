@@ -255,8 +255,9 @@ const char *cs_best(const cs_t *s) { return s->best; }
 
 const char *cs_peer(const cs_t *s)
 {
-    /* the other station is never the station itself */
-    return (s->peer[0] && !seq(s->peer, s->best)) ? s->peer : "";
+    /* the other station is never the station itself, nor a misread of it
+     * (OE9EBI next to OE9IBI) */
+    return (s->peer[0] && !seq(s->peer, s->best) && !near1(s->peer, s->best)) ? s->peer : "";
 }
 
 int cs_cq(const cs_t *s) { return s->cq; }

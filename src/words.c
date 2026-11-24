@@ -69,6 +69,20 @@ static int is_number(const char *p, int n)
     return 1;
 }
 
+/* a number in cut figures, as sent in CW: T or O for 0, N for 9, maybe W
+ * for watts ("2TTW" = 200 W, "1TT", "58N"). Starts with a digit. */
+static int is_cutnum(const char *p, int n)
+{
+    if (n < 2 || n > 6 || !is_dg(p[0]) || (n > 3 && is_report(p, 3))) return 0;   /* not 5NNT36 */
+    int end = (p[n - 1] == 'W') ? n - 1 : n, cut = 0;
+    if (end < 2) return 0;
+    for (int i = 1; i < end; i++) {                  /* figures, then cut letters only: not 5NN73 */
+        if (p[i] == 'T' || p[i] == 'N' || p[i] == 'O') cut = 1;
+        else if (!is_dg(p[i]) || cut) return 0;
+    }
+    return cut || end < n;
+}
+
 static int same(const char *p, int n, const char *k)
 {
     int i = 0;
@@ -95,8 +109,12 @@ static int call_ok(const char *p, int n)
  * taken when the call is known, or "GM5NN73TUEE" would give N73TUEE */
 static int call_piece(const char *p, int n)
 {
-    int sl = 0;
+    int sl = 0, cutl = 1;
     while (sl < n && is_al(p[n - 1 - sl])) sl++;
+    /* T, N, O then W is power in cut figures: "IS2TTW" is IS 200 W (OK1TN stays a call) */
+    for (int i = n - sl; i < n - 1; i++) if (p[i] != 'T' && p[i] != 'N' && p[i] != 'O') cutl = 0;
+    if (sl >= 2 && cutl && p[n - 1] == 'W') return 0;
+    if (sl == 1 && p[n - 1] == 'W' && n >= 3 && is_dg(p[n - 2]) && is_dg(p[n - 3])) return 0;   /* IS 100W */
     return sl <= 4 && call_ok(p, n);
 }
 
@@ -189,7 +207,7 @@ static int anchor(const char *p, int n)
 {
     static const char *const yes[] = { "QTH", "QSL", "QRZ", "QRL", "QSO", "QRM", "QRN", "QSB", "QSY",
         "QRP", "QRO", "QRS", "QRQ", "QRU", "QRV", "QRT", "QSK", "TNX", "TKS", "CFM", "CPY", "BCNU",
-        "SRI", "HIHI", "PWR", "TNK", "ABT", "RPRT", "HPE", "CONDX", 0 };
+        "SRI", "HIHI", "PWR", "TNK", "ABT", "RPRT", "HPE", "CONDX", "WX", 0 };
     for (int i = 0; yes[i]; i++) if (same(p, n, yes[i])) return 1;
     return 0;
 }
@@ -225,32 +243,44 @@ static int dict_split(const char *p, int n, char *o)
         for (int j = (i > 16 ? i - 16 : 0); j < i; j++) {
             if (np[j] < 0) continue;
             int m = i - j, tail = 0;
-            int ok = (m >= 2 && is_word(p + j, m)) || is_number(p + j, m) ||
+            int ok = (m >= 2 && is_word(p + j, m)) || is_number(p + j, m) || is_cutnum(p + j, m) ||
                      (m == 1 && (p[j] == 'A' || p[j] == 'I'));
             if (!ok && i == n && m >= 4 && last[j] >= 0) {
-                /* a name or a place at the end: after QTH or NOMBRE (never inside
-                 * words), or after DR or NAME behind two words, one of 4+ letters
-                 * (not CATHEDRAL, ORNAMENTAL); IS / ES may come in between */
-                int a = last[j], b = j;
-                if ((same(p + a, b - a, "IS") || same(p + a, b - a, "ES")) && last[a] >= 0) { b = a; a = last[a]; }
-                int free_ = same(p + a, b - a, "QTH") || same(p + a, b - a, "NOMBRE");
+                /* a name, a place or a value at the end: after QTH, NOMBRE or NR
+                 * (never inside words); after NAME, RIG, PWR or WX followed by IS / ES
+                 * ("RIG IS YAESUFT"; not ANT or OP: ANTISEPTIC, OPISTHOGRAPH); or after DR or NAME behind two
+                 * words, one of 4+ letters or a CW abbreviation (not CATHEDRAL,
+                 * ORNAMENTAL); IS / ES / NR may come in between */
+                int a = last[j], b = j, conn = 0, conn_is = 0;
+                if ((same(p + a, b - a, "IS") || same(p + a, b - a, "ES") || same(p + a, b - a, "NR")) &&
+                    last[a] >= 0) { conn_is = same(p + a, b - a, "IS"); b = a; a = last[a]; conn = 1; }
+                int free_ = same(p + a, b - a, "QTH") || same(p + a, b - a, "NOMBRE") ||
+                            (!conn && same(p + a, b - a, "NR")) ||           /* "NR TRIESTE" (near) */
+                            (conn && same(p + a, b - a, "NAME")) ||
+                            (conn_is && (same(p + a, b - a, "RIG") || same(p + a, b - a, "PWR") ||
+                                         same(p + a, b - a, "WX")));          /* not RIG ES: RIGESCENT */
                 int strict = (same(p + a, b - a, "DR") || same(p + a, b - a, "NAME")) &&
-                             np[a] >= 2 && !one[a] && lng[a];
-                if (free_ || strict) {
+                             np[a] >= 2 && !one[a] && (lng[a] || anc[a]);
+                /* the tail does not start with IS / ES / NR: "NOMBRE ES PABLO" */
+                int starts_conn = m > 2 && ((p[j] == 'I' && p[j + 1] == 'S') || (p[j] == 'E' && p[j + 1] == 'S') ||
+                                            (p[j] == 'N' && p[j + 1] == 'R'));
+                if ((free_ || strict) && !starts_conn) {
                     int al = 1;
                     for (int k = j; k < i; k++) if (!is_al(p[k])) al = 0;
                     ok = tail = al;
                 }
             }
             if (!ok) continue;
-            /* fewest pieces; an unknown tail costs its length, so known words
-             * cover as much as they can ("NOMBRE ES PABLO", not "NOMBRE ESPABLO") */
-            int c = cost[j] + (tail ? m : 1);
+            /* fewest pieces; an unknown tail costs half its length, and a short
+             * word that is no CW word closing the token costs more, so a name
+             * stays whole: "QTH NR TRIESTE", not "TRIES TE" */
+            int c = cost[j] + (tail ? (m + 1) / 2 : (is_number(p + j, m) && m != 2) ? 3 : 1) +   /* 73 73, not 7373 */
+                    (i == n && m <= 2 && !tail && vocab_find(p + j, m) < 0 && !is_number(p + j, m) ? 3 : 0);
             if (np[i] < 0 || c < cost[i]) {
                 np[i] = np[j] + 1; cost[i] = c; from[i] = j; last[i] = j; one[i] = one[j] | (m == 1);
                 lng[i] = lng[j] | (m >= 4 && !tail);
-                big[i] = big[j] | tail | (m >= 3 && !anchor(p + j, m) && !is_number(p + j, m));
-                anc[i] = anc[j] | anchor(p + j, m) | is_number(p + j, m) | tail;
+                big[i] = big[j] | tail | is_cutnum(p + j, m) | (m >= 3 && !anchor(p + j, m) && !is_number(p + j, m));
+                anc[i] = anc[j] | anchor(p + j, m) | is_number(p + j, m) | is_cutnum(p + j, m) | tail;
             }
         }
     }
@@ -272,6 +302,7 @@ static int dict_split(const char *p, int n, char *o)
 static int split(const char *p, int n, char *o, const char *const *known, int nk, int next)
 {
     /* only callsigns known from outside the line protect a whole token */
+    if (same(p, n, "DROM")) { const char *t = "DR OM"; int k = 0; while (t[k]) { o[k] = t[k]; k++; } return k; }
     if (n < 4 || n > TOKMAX || known_find(p, n, known, next) || dict_has(p, n)) return 0;
     int as_call = call_ok(p, n);          /* may still be a known call + a word: OS5ZK */
     if (!as_call && recognized(p, n, known, nk)) return 0;

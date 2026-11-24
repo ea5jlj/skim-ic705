@@ -134,6 +134,12 @@ v: greet meet
 = wear wears wore worn wearing ring rings rang rung ringing sing sings sang sung singing
 = swim swims swam swum swimming draw draws drew drawn drawing show shown
 
+# ---- countries and greetings from abroad
+= ciao italy italian spain spanish france french germany german england english scotland wales ireland
+= portugal austria switzerland belgium holland netherlands dutch sweden norway finland denmark iceland
+= poland russia ukraine greece croatia slovenia hungary czech slovakia romania bulgaria serbia turkey
+= japan china india australia canada america usa brazil argentina mexico chile europe africa asia
+
 # ---- conversation
 = hello hi bye goodbye thanks please welcome congratulations cheers sorry
 = good morning afternoon evening night luck fun

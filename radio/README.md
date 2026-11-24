@@ -27,8 +27,8 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `cc9b219e7586b1c0f5a4222fd581f9c2f234303b4d02fa50c1344707d139aa7c` |
-| `app/SKIMDICT.BIN` | `56d07ea645a359175508c8fa2499e9a688b8ba7fe3e2492ff106152331049448` |
+| `app/SKIM.APP` | `286b7cd07906898af58c7ed0a6baca3e72817a8489326f1f6b4affdb78608fb3` |
+| `app/SKIMDICT.BIN` | `652ca556d0ee18fd15fcc879471a3e0b69d9360939ed546ef2379bc01e7fbda3` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
 2. Set your **CW PITCH** in `SKIM.CFG` (`pitch=600`). The app cannot read it from the radio, and it is needed to turn each station's audio tone into its real frequency. 600 Hz is the IC-705 factory default. To see yours, press the **MULTI** knob in CW mode and look at **CW PITCH**, then put the same value here. If it does not match, every frequency shown will be off by the difference (for example 200 Hz off if your pitch is 800 Hz). If you use CW-R, also set `cwr=1`.
@@ -80,6 +80,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
   - evidence against: before DE or before a report (5NN), because that is the station being called;
   - near variants (decodes with one error) support each other, and recent evidence wins;
   - stations are remembered by their real frequency, so moving the dial does not lose them. Signals more than 20 Hz apart are different stations: the two sides of a QSO are often only 20–30 Hz apart;
+  - a QSO partner that is just a misread of the station's own call (`OE9EBI` next to `OE9IBI`) is not shown;
   - a station whose callsign is not known yet, within 100 Hz of a station in a QSO, is labelled as that QSO's other side (`IN3TWX>G3PQD`), since often only one side sends both calls.
 - **Crosstalk:** a neighbour keying within 250 Hz mutes a channel only when its filter would really let that neighbour through, so close stations of any strength are decoded at once.
 - **Pile-ups:** up to 12 stations at once (`chans`). The noise floor ignores narrow peaks, so it does not rise with many signals. In tests, 10 stations 150 Hz apart were all decoded.
@@ -89,7 +90,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
   - glued words are split only when every piece is a known word, a report, a number or a callsign, and there is a callsign or report among them, or enough typical CW words: `CQCQDEIK4PLU` → `CQ CQ DE IK4PLU`, `GM5NN73TUEE` → `GM 5NN 73 TU EE`, `TNXFERCALL` → `TNX FER CALL`, `CUAGNSN` → `CU AGN SN`;
   - `=` and `+` always stand apart: `TRIESTE=HW?` → `TRIESTE = HW?`;
   - right after `DR`, `NAME` or `QTH` (or `NAME IS`, `QTH IS`, `OP IS`, or `DR OM` after a greeting), one unknown word may follow, such as a name or a place: `GEDRALFON` → `GE DR ALFON`, `GEDROMALFONSO` → `GE DR OM ALFONSO`, `QTHISCADIZ` → `QTH IS CADIZ`;
-  - with the word list (`SKIMDICT.BIN`: about 4,500 common English and 6,000 Spanish words, written for this project; accents removed and Ñ as N): two pieces that make a common word are joined when they are not both words (`TH ERE` → `THERE`, `PER HAPS` → `PERHAPS`, `GRA CIAS` → `GRACIAS`, `ANT ENA` → `ANTENA`), and a glued phrase is split into English, Spanish and CW words when it contains an unmistakable CW abbreviation such as HPE, TNX, QSO or QTH, or a number, or ends in a name or place after DR, NAME, QTH or NOMBRE (`HPECUINPERSON` → `HPE CU IN PERSON`, `THEMEETINGSDRDEREK` → `THE MEETINGS DR DEREK`, `GRACIASPORELQSO` → `GRACIAS POR EL QSO`, `MINOMBREESPABLO` → `MI NOMBRE ES PABLO`). Words on the list are never split. In conversations many operators space words no wider than letters, or letters as wide as words, so timing alone cannot tell them apart;
+  - with the word list (`SKIMDICT.BIN`: about 4,500 common English and 6,000 Spanish words, written for this project; accents removed and Ñ as N): two pieces that make a common word are joined when they are not both words (`TH ERE` → `THERE`, `PER HAPS` → `PERHAPS`, `GRA CIAS` → `GRACIAS`, `ANT ENA` → `ANTENA`), and a glued phrase is split into English, Spanish and CW words when it contains an unmistakable CW abbreviation such as HPE, TNX, QSO or QTH, or a number, or ends in a name, place or value after DR, NAME, QTH, NOMBRE or NR, or after RIG, PWR or WX followed by IS (`RIGISYAESUFT` → `RIG IS YAESUFT`, `PWRIS2TTW` → `PWR IS 2TTW`, `NRTRIESTE` → `NR TRIESTE`); numbers in cut figures (`2TTW` = 200 W, `58N`) count as numbers (`HPECUINPERSON` → `HPE CU IN PERSON`, `THEMEETINGSDRDEREK` → `THE MEETINGS DR DEREK`, `GRACIASPORELQSO` → `GRACIAS POR EL QSO`, `MINOMBREESPABLO` → `MI NOMBRE ES PABLO`). Words on the list are never split. In conversations many operators space words no wider than letters, or letters as wide as words, so timing alone cannot tell them apart;
   - a callsign cut in two is joined: `EA5 RJ` → `EA5RJ`;
   - callsigns already identified on the band, or repeated in the line, are preferred (`OS5ZK` next to `OS5Z` → `OS5Z K`);
   - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `HIDE`, `COWBOYS`, `OKFRANCIS`) are left alone: over the 234,000 words of an English dictionary, 34 are split (all rare: GUDGEON, NONORNAMENTAL…). The callsign detection reads the fixed line.
@@ -106,7 +107,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 
 Each line is: time, the line as shown on DECODE, then after `|` the audio tone and the raw text.
 
-The header also says whether the word list was loaded: `# word list: SKIMDICT.BIN, 31649 bytes` `# word list: none (SKIMDICT.BIN not found)`, or `# word list: none (SKIMDICT.BIN damaged or too big)` (SKIM then works without it).
+The header also says whether the word list was loaded: `# word list: SKIMDICT.BIN, 31883 bytes`, `# word list: none (SKIMDICT.BIN not found)`, or `# word list: none (SKIMDICT.BIN damaged or too big)` (SKIM then works without it).
 
 Once a minute it also writes `# load: 9% (8 channels), longest block: 12 ms, audio lost: 0, dial pauses: 2`: the share of real time the decoder needs; the longest time one 20 ms block of audio took (wall time, so it also counts moments when the radio's own tasks had the CPU); how many audio blocks were lost (should stay 0); and how many times decoding paused while the dial was turned.
 
