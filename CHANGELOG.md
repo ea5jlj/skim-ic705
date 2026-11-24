@@ -2,6 +2,10 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — documentation: 8-app limit
+
+- **The radio lists at most 8 apps.** With SQ6EMM's full app bundle in `Apps`, SKIM does not appear in the Apps menu or on the RTTY button until one unused app is moved out of the folder. Found by a user and confirmed: it had also happened on the first install here. Now in the installation steps of both READMEs and in the known limitations.
+
 ## 2026-11-24 — ragchew values, cut numbers, self-QSO labels
 
 ### Improvements

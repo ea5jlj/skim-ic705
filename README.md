@@ -86,7 +86,7 @@ Every line is also written to `SKIMnn.LOG` on the SD card with the time, the aud
 ## Installation
 
 1. Requires SQ6EMM's custom firmware, release **`20261119v14`**, with its ICAP runtime files (`ICAPCOLD.BIN`, `ICAPSPOT.BIN`) in `\IC-705\Apps\`. Stock Icom firmware cannot run SKIM, and other releases are not supported. Follow the [firmware instructions](https://sq6emm.github.io/icom-custom-firmware/).
-2. Copy [`app/SKIM.APP`](app/SKIM.APP), [`app/SKIM.CFG`](app/SKIM.CFG) and [`app/SKIMDICT.BIN`](app/SKIMDICT.BIN) to `\IC-705\Apps\` on the microSD card. Keep the names in capitals. (`SKIMDICT.BIN` is an English and Spanish word list for the word-spacing fix; SKIM also works without it.)
+2. Copy [`app/SKIM.APP`](app/SKIM.APP), [`app/SKIM.CFG`](app/SKIM.CFG) and [`app/SKIMDICT.BIN`](app/SKIMDICT.BIN) to `\IC-705\Apps\` on the microSD card. Keep the names in capitals. (`SKIMDICT.BIN` is an English and Spanish word list for the word-spacing fix; SKIM also works without it.) The radio lists **at most 8 apps**: with SQ6EMM's full app bundle already in `Apps`, SKIM does not appear (in **MENU › SET › Apps** or on the RTTY button) until you move one app you do not use (its `.APP` and `.CFG`) to a folder outside `Apps`.
 3. Set `pitch` in `SKIM.CFG` to your radio's **CW PITCH** (press the MULTI knob in CW mode; factory default 600 Hz). It is needed to show each station's real frequency. If you use CW-R, also set `cwr=1`.
 4. Put the radio in **CW**, press **RTTY** repeatedly until **SKIM** appears (RTTY → RTTY-R → SKIM), then press the mode button and go back to **CW**. The SKIM DECODE screen stays and the key keeps working. After switching the radio off and on, select SKIM again.
 
