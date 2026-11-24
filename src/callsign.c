@@ -121,14 +121,27 @@ static int cut_of(const char *a, const char *b)
     return 1;
 }
 
-/* score plus support from close variants (decodes with one error, or cut short) */
+/* a is b without its first letter (B5BRZ of EB5BRZ, K2HMU of IK2HMU): the
+ * first dot or dash of a call is often lost in a pile-up, while a stray
+ * element joined to the front of a call is rare (the gap splits it off) */
+static int lead_of(const char *a, const char *b)
+{
+    return slen(b) == slen(a) + 1 && seq(a, b + 1);
+}
+
+/* score plus support from close variants (decodes with one error, or cut
+ * short). A call missing its first letter backs the full call in full and
+ * gets nothing back from it, so the full call wins once it has been seen. */
 static float support(const cs_t *s, int k)
 {
     float v = s->c[k].score;
-    for (int i = 0; i < CS_CANDS; i++)
-        if (i != k && s->c[i].call[0] && s->c[i].score > 0 &&
-            (near1(s->c[i].call, s->c[k].call) || cut_of(s->c[i].call, s->c[k].call)))
+    for (int i = 0; i < CS_CANDS; i++) {
+        if (i == k || !s->c[i].call[0] || s->c[i].score <= 0) continue;
+        if (lead_of(s->c[i].call, s->c[k].call)) v += s->c[i].score;
+        else if (lead_of(s->c[k].call, s->c[i].call)) continue;
+        else if (near1(s->c[i].call, s->c[k].call) || cut_of(s->c[i].call, s->c[k].call))
             v += 0.5f * s->c[i].score;
+    }
     return v;
 }
 

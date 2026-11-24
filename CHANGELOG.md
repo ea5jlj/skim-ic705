@@ -2,6 +2,12 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — full callsign in pile-ups
+
+### Fixes
+
+- **Full callsign when the first letter is lost.** In a pile-up the first dot or dash of a call is often lost, and the station label could take the shortened call (`B5BRZ` for EB5BRZ, `K2HMU` for IK2HMU) once it had been copied twice, even after the full call had been seen. A call missing its first letter now counts in full for the full call and not the other way round, so the full call wins once it has been decoded; the short form is still shown when nothing longer has been heard. Checked on a new pile-up recording and against the 10 earlier ones (no other change).
+
 ## 2026-11-24 — paused outside CW
 
 ### Improvements
