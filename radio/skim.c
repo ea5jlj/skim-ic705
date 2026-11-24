@@ -986,7 +986,7 @@ int app_main(const struct icap_svc *svc)
         if (n < 0) { icap_sleep_ms(50); continue; }
         if (n == 0) {
             icap_sleep_ms(5);
-        } else if (tuning) {
+        } else if (tuning || !IS_CW(radio_mode)) {   /* dial moving, or not in CW: paused */
             got += (uint32_t)n;         /* audio read and dropped while the dial moves */
         } else {
             got += (uint32_t)n;
@@ -1054,13 +1054,26 @@ int app_main(const struct icap_svc *svc)
              * (to learn which number is CW, CW-R, RTTY-R…) */
             struct icap_radio rs;
             if (icap_radio_state(&rs) == 0) {
+                /* SKIM decodes only in CW: outside it (the decoder mode of the
+                 * RTTY button, SSB…) it pauses, and starts afresh back in CW */
+                int was_cw = IS_CW(radio_mode);
                 radio_mode = rs.mode;
-                /* one-time warning if the radio stays out of CW for 8 s */
-                if (!IS_CW(rs.mode)) { if (!t_noncw) t_noncw = now; }
-                else t_noncw = 0;
-                if (t_noncw && !warned && now - t_noncw > 8000u) {
-                    icap_popup("SKIM: not in CW mode.\nNo station frequencies.");   /* short: CLOSE covers the lower lines */
-                    warned = 1;
+                /* tell the owner once per pause, after 8 s out of CW (not at
+                 * start, when the radio is briefly in the decoder mode) */
+                if (!IS_CW(radio_mode)) {
+                    if (!t_noncw) t_noncw = now;
+                    if (!warned && now - t_noncw > 8000u) {
+                        icap_popup("SKIM paused.\nSwitch to CW mode.");   /* short: CLOSE covers the lower lines */
+                        warned = 1;
+                    }
+                } else { t_noncw = 0; warned = 0; }
+                if (was_cw && !IS_CW(radio_mode)) {
+                    for (int k = 0; k < cwd_channels(d); k++) if (ch[k].ln) send_line(k, ch[k].tone);
+                    logline("# paused: radio not in CW", 0);
+                } else if (!was_cw && IS_CW(radio_mode)) {
+                    cwd_init(d, &c);
+                    for (int k = 0; k < cwd_channels(d); k++) { ch[k].ln = 0; ch[k].tn = 0; ch[k].tail[0] = 0; }
+                    logline("# resumed: CW", 0);
                 }
             }
             if (log_fd >= 0 && icap_radio_state(&rs) == 0 && rs.mode != last_mode) {

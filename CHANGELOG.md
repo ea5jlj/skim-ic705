@@ -2,6 +2,12 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — paused outside CW
+
+### Improvements
+
+- **Paused outside CW.** Outside CW (the decoder mode of the RTTY button, SSB, FM…) SKIM now closes the open lines and stops decoding until the radio is back in CW, where it starts afresh, as after turning the dial. After 8 s out of CW a short popup says `SKIM paused.` / `Switch to CW mode.`, once per pause; the log writes `# paused: radio not in CW` and `# resumed: CW`. Before, SKIM kept decoding with audio tones instead of frequencies and showed a five-line popup the CLOSE button partly covered. Checked in the simulator (new `icapsim -X sec:code` to change the mode code during a run): CW with FIL1 and FIL2 the same, nothing outside CW, pause and resume at the mode changes.
+
 ## 2026-11-24 — CW with any filter, shorter popup
 
 ### Fixes

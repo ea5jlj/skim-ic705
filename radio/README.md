@@ -27,7 +27,7 @@ The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `S
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `65257b8b41351dcf003d3cc015727cc12bcf8269b482ba9a3d3c99138e965f54` |
+| `app/SKIM.APP` | `a64dca8fa6bda32f2d08760cee25fa9d8e003aea7eba59178936aca09dc8e7d3` |
 | `app/SKIMDICT.BIN` | `652ca556d0ee18fd15fcc879471a3e0b69d9360939ed546ef2379bc01e7fbda3` |
 
 1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English and Spanish words to fix word spacing in conversations.
@@ -78,6 +78,7 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 - **Frequency:** station = dial − (tone − pitch). In normal CW, Icom receives on the LSB side, so a higher tone is a lower station.
 - **Clipped first element:** many transmitters in semi break-in cut the first element short while they switch to TX (`TEST` arrives as `EEST`). After a pause of 0.8 s or more, the first element is read as a dash from 1.5 units instead of 2.
 - **Turning the dial:** while the dial moves fast (more than 50 Hz in 0.1 s), every tone moves and nothing can be decoded, so SKIM closes the open lines and pauses. Once the dial has been still for 0.4 s it starts afresh on the new frequency. Small steps do not pause it.
+- **Only in CW:** outside CW (the decoder mode of the RTTY button, SSB, FM…) SKIM pauses: it closes the open lines and stops decoding until the radio is back in CW, where it starts afresh. After 8 s out of CW the radio shows `SKIM paused. Switch to CW mode.` (once per pause). The log writes `# paused: radio not in CW` and `# resumed: CW`. Any CW filter (FIL1, FIL2, FIL3) counts as CW.
 - **Callsigns:**
   - a candidate must follow the callsign formation rules (prefix, 1–4 digits, 1–4 letters; up to 6 letters for special-event calls with two or more digits, such as HA40EUDXF);
   - evidence for: after DE, after CQ / CQ TEST, before TEST, after TU, repeated;

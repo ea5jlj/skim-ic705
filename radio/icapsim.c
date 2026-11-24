@@ -10,7 +10,8 @@
  *
  * usage: icapsim input.wav [-d apps_dir] [-p seconds] [-m mode] [-D sec:Hz] [-U 0|1]
  *                [-C CALL] [-L LOCATOR] [-P 0|1]   (@MYCALL, @MYLOC, @MODECFG pskr=)
- *                [-M code]                         (radio mode code: 32 CW FIL1, 33 CW FIL2…)
+ *                [-M code] [-X sec:code]           (radio mode code: 32 CW FIL1, 33 CW FIL2…;
+ *                                                   -X changes it after sec seconds)
  *   -D 30:7029500  after 30 s the dial moves to 7029500 Hz (the audio tone does NOT
  *                  change: only useful to check that stations are remembered)
  */
@@ -47,6 +48,7 @@ static void s_print(const char *s)
 static void s_set_line(int l, const char *s) { if (l >= 0 && l < 8) snprintf(panel[l], sizeof panel[l], "%s", s); }
 static void s_clear(void) { memset(panel, 0, sizeof panel); }
 
+static double mode_t2 = -1; static int mode_code2;          /* -X sec:code: the mode code changes */
 static int sim_mode = 32;                                  /* -M code: radio mode code (32 = CW, FIL1) */
 static int sim_usb = 0;                                     /* -U 1: @FREQ reports usb=1 */
 static const char *sim_call, *sim_loc;                      /* -C CALL, -L LOCATOR: @MYCALL, @MYLOC */
@@ -110,7 +112,7 @@ static int s_radio(struct icap_radio *r)
 {
     memset(r, 0, sizeof *r);
     r->freq_hz = (move_t >= 0 && now_s() >= move_t) ? move_hz : 7030000;
-    r->mode = (uint8_t)sim_mode;
+    r->mode = (uint8_t)((mode_t2 >= 0 && now_s() >= mode_t2) ? mode_code2 : sim_mode);
     return 0;
 }
 static int s_stop(void)
@@ -141,7 +143,7 @@ static int s_mode(char *b, int max) { snprintf(b, max, "%s", mode_name); return 
 
 int main(int argc, char **argv)
 {
-    if (argc < 2) { fprintf(stderr, "usage: icapsim f.wav [-d dir] [-p sec] [-H heap_kb] [-m mode] [-D sec:Hz] [-U 0|1] [-C call] [-L loc] [-P 0|1] [-M code]\n"); return 1; }
+    if (argc < 2) { fprintf(stderr, "usage: icapsim f.wav [-d dir] [-p sec] [-H heap_kb] [-m mode] [-D sec:Hz] [-U 0|1] [-C call] [-L loc] [-P 0|1] [-M code] [-X sec:code]\n"); return 1; }
     int heap_kb = 1024;
     for (int i = 2; i + 1 < argc; i += 2) {
         if (!strcmp(argv[i], "-d")) dir = argv[i + 1];
@@ -151,6 +153,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "-U")) sim_usb = atoi(argv[i + 1]);   /* @FREQ usb= 0 or 1 */
         else if (!strcmp(argv[i], "-C")) sim_call = argv[i + 1];
         else if (!strcmp(argv[i], "-M")) sim_mode = atoi(argv[i + 1]);
+        else if (!strcmp(argv[i], "-X")) { double a; int b; if (sscanf(argv[i + 1], "%lf:%d", &a, &b) == 2) { mode_t2 = a; mode_code2 = b; } }
         else if (!strcmp(argv[i], "-L")) sim_loc = argv[i + 1];
         else if (!strcmp(argv[i], "-P")) sim_pskr = atoi(argv[i + 1]);
         else if (!strcmp(argv[i], "-D")) { double a; unsigned b; if (sscanf(argv[i + 1], "%lf:%u", &a, &b) == 2) { move_t = a; move_hz = b; } }
