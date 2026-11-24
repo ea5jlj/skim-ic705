@@ -23,4 +23,11 @@
  * splitting and allow joining. Returns the length of out. */
 int wd_fix(const char *in, char *out, int max, const char *const *known, int nknown);
 
+/* Optional English word list (format of tools/mkdict.py: idx[677] bucket
+ * offsets into data). With it, split words are joined ("TH ERE" → "THERE")
+ * and glued phrases split around a CW word ("HPECUINPERSON" → "HPE CU IN
+ * PERSON"); dictionary words are never split. Without it (default, or
+ * wd_dict(0, 0)), only the CW vocabulary is used. The data must stay valid. */
+void wd_dict(const unsigned short *idx, const unsigned char *data);
+
 #endif

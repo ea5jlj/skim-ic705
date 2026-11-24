@@ -23,13 +23,14 @@ SKIM is receive-only: it never transmits.
 
 ## Install
 
-The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP` and `SKIM.CFG`, ready to use. It is built for SQ6EMM firmware release **20261119v14**; with another release, build it yourself against the matching SDK (see Building below).
+The compiled app is in the repository's [`app/`](../app/) folder: `SKIM.APP`, `SKIM.CFG` and the English word list `SKIMDICT.BIN`, ready to use. It is built for SQ6EMM firmware release **20261119v14**; with another release, build it yourself against the matching SDK (see Building below).
 
 | File | SHA-256 |
 |---|---|
-| `app/SKIM.APP` | `82fd975aae05a23f28a83b5f0a2f370bef84eba93486adf6110d0d7a2899f73a` |
+| `app/SKIM.APP` | `80a8d1c07e91e7fd27d16360fda9e4ad1903b757b055e38283d9b9cf0729308b` |
+| `app/SKIMDICT.BIN` | `e58b2d8bacd0b64d15673894d431b9c87345bd7ef20574fbcee45934921ee40b` |
 
-1. Copy `SKIM.APP` and `SKIM.CFG` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are.
+1. Copy `SKIM.APP`, `SKIM.CFG` and `SKIMDICT.BIN` from `app/` to `\IC-705\Apps\` on the SD card, next to `ICAPCOLD.BIN` and `ICAPSPOT.BIN`. Keep the names in capitals as they are. `SKIMDICT.BIN` is optional: without it SKIM works the same, but cannot use English words to fix word spacing in conversations.
 2. Set your **CW PITCH** in `SKIM.CFG` (`pitch=600`). The app cannot read it from the radio, and it is needed to turn each station's audio tone into its real frequency. 600 Hz is the IC-705 factory default. To see yours, press the **MULTI** knob in CW mode and look at **CW PITCH**, then put the same value here. If it does not match, every frequency shown will be off by the difference (for example 200 Hz off if your pitch is 800 Hz). If you use CW-R, also set `cwr=1`.
 
 ## Use
@@ -78,7 +79,8 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
   - `TEST X` or `X TEST` (a contest CQ) shows the station as calling CQ, like `CQ X`;
   - evidence against: before DE or before a report (5NN), because that is the station being called;
   - near variants (decodes with one error) support each other, and recent evidence wins;
-  - stations are remembered by their real frequency, so moving the dial does not lose them.
+  - stations are remembered by their real frequency, so moving the dial does not lose them. Signals more than 20 Hz apart are different stations: the two sides of a QSO are often only 20–30 Hz apart;
+  - a station whose callsign is not known yet, within 100 Hz of a station in a QSO, is labelled as that QSO's other side (`IN3TWX>G3PQD`), since often only one side sends both calls.
 - **Crosstalk:** a neighbour keying within 250 Hz mutes a channel only when its filter would really let that neighbour through, so close stations of any strength are decoded at once.
 - **Pile-ups:** up to 12 stations at once (`chans`). The noise floor ignores narrow peaks, so it does not rise with many signals. In tests, 10 stations 150 Hz apart were all decoded.
 - **Operators taking turns:** in a QSO or a contest run, two or more operators share one frequency, each with its own speed, weighting and spacing. Each channel keeps up to 3 timing profiles: when the level jumps or after a long silence, SKIM holds the first elements back and picks the operator that matches (level and speed), keeps the current timing if it still fits, or starts a new one.
@@ -87,9 +89,10 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
   - glued words are split only when every piece is a known word, a report, a number or a callsign, and there is a callsign or report among them, or enough typical CW words: `CQCQDEIK4PLU` → `CQ CQ DE IK4PLU`, `GM5NN73TUEE` → `GM 5NN 73 TU EE`, `TNXFERCALL` → `TNX FER CALL`, `CUAGNSN` → `CU AGN SN`;
   - `=` and `+` always stand apart: `TRIESTE=HW?` → `TRIESTE = HW?`;
   - right after `DR`, `NAME` or `QTH` (or `NAME IS`, `QTH IS`, `OP IS`, or `DR OM` after a greeting), one unknown word may follow, such as a name or a place: `GEDRALFON` → `GE DR ALFON`, `GEDROMALFONSO` → `GE DR OM ALFONSO`, `QTHISCADIZ` → `QTH IS CADIZ`;
+  - with the English word list (`SKIMDICT.BIN`, about 4,000 common words): two pieces that make a common word are joined when they are not both words (`TH ERE` → `THERE`, `PER HAPS` → `PERHAPS`), and a glued phrase is split into English and CW words when it contains an unmistakable CW abbreviation such as HPE, TNX or QTH, or a number, or ends in a name after DR (`HPECUINPERSON` → `HPE CU IN PERSON`, `THEMEETINGSDRDEREK` → `THE MEETINGS DR DEREK`). Words on the list are never split. In conversations many operators space words no wider than letters, or letters as wide as words, so timing alone cannot tell them apart;
   - a callsign cut in two is joined: `EA5 RJ` → `EA5RJ`;
   - callsigns already identified on the band, or repeated in the line, are preferred (`OS5ZK` next to `OS5Z` → `OS5Z K`);
-  - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `HIDE`, `OKFRANCIS`) are left alone: over the 234,000 words of an English dictionary, 32 are split. The callsign detection reads the fixed line.
+  - it only moves spaces and never changes a letter. Plain-language words (`DEAR`, `TOUR`, `HIDE`, `COWBOYS`, `OKFRANCIS`) are left alone: over the 234,000 words of an English dictionary, 34 are split (all rare: GUDGEON, NONORNAMENTAL…). The callsign detection reads the fixed line.
 
 ## Logs
 
@@ -102,6 +105,8 @@ The small graph on the DECODE screen is the radio's own spectrum of the **audio*
 ```
 
 Each line is: time, the line as shown on DECODE, then after `|` the audio tone and the raw text.
+
+The header also says whether the English word list was loaded: `# word list: SKIMDICT.BIN, 15228 bytes` or `# word list: none (SKIMDICT.BIN not found)`.
 
 Once a minute it also writes `# load: 9% (8 channels), longest block: 12 ms, audio lost: 0, dial pauses: 2`: the share of real time the decoder needs; the longest time one 20 ms block of audio took (wall time, so it also counts moments when the radio's own tasks had the CPU); how many audio blocks were lost (should stay 0); and how many times decoding paused while the dial was turned.
 
@@ -119,7 +124,7 @@ sh radio/build.sh          # build/SKIM.APP and build/icapsim
 
 - **Build options:** the same as the SDK's reference decoders (Cortex-A9, NEON/VFPv3 hard-float, freestanding). The script fails if any external symbol is left unresolved.
 - **Packaging:** the app is packed with `--abi 3 --background --mode SKIM:keep`. `:keep` leaves the radio's mode alone, so the key keeps working. With the default `usbd` the radio switches to USB-D and the key does nothing.
-- **Size:** about 47 KB of code. The decoder state (~157 KB with 12 channels) lives in the app heap (`icap_heap()`), which is about 240 KB on the IC-705.
+- **Size:** about 44 KB of code (the text handling is built for size, the decoder for speed). The decoder state (~157 KB with 12 channels) and the English word list (15 KB, read from `SKIMDICT.BIN`) live in the app heap (`icap_heap()`), which is about 240 KB on the IC-705.
 
 ### Testing on a computer
 

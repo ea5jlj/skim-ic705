@@ -2,6 +2,23 @@
 
 Improvements and fixes to SKIM and the decoder, newest first. Each entry says what changed and, where it matters, how it was checked.
 
+## 2026-11-24 — QSO sides, English word list, smaller app
+
+### Fixes
+
+- **Both sides of a QSO shared one label.** Signals up to 80 Hz apart counted as one station, so in a QSO between G3PQD (601 Hz) and IN3TWX (574 Hz) everything IN3TWX sent was labelled `G3PQD>IN3TWX`. Stations are now told apart above 20 Hz (one station's tone varies by ±3 Hz). The same change removed wrong labels on nearby callers (a station at 947 Hz labelled as the one at 903 Hz).
+
+### Improvements
+
+- **English word list for word spacing.** In conversations many operators space words no wider than letters, or letters as wide as words: in a recorded ragchew, IN3TWX's word gaps were 3.3–3.7 units, like his letter gaps, and one of G3PQD's letter gaps inside `THERE` (4.7 units) was longer than his gap between `THE` and `LAST` (4.6). Timing alone cannot settle that. SKIM now reads an optional list of about 4,000 common English words (SCOWL size 10) from `SKIMDICT.BIN`:
+  - two pieces that make a common word are joined when they are not both words: `TH ERE` → `THERE`, `PER HAPS` → `PERHAPS`, `IN FO` → `INFO`, `TE ST` → `TEST`;
+  - a glued phrase is split into English and CW words around an unmistakable CW abbreviation (HPE, TNX, QTH, RPRT, ABT…) or a number, or before a name after DR: `HPECUINPERSON` → `HPE CU IN PERSON`, `THEMEETINGSDRDEREK` → `THE MEETINGS DR DEREK`;
+  - words on the list are never split.
+  Checked on seven recordings and all radio logs (only the intended lines change, no letter changed), on 50,000 moderately common English words not on the list (none split by the new rules) and on a 234,000-word dictionary (34 split, against 32 before, all rare). Without `SKIMDICT.BIN`, SKIM works as before; the log header says whether it was loaded. Tested on the radio: the list loads (`# word list: SKIMDICT.BIN, 15228 bytes`) and the app runs with the new memory layout. Built by `tools/mkdict.py`; SCOWL's notice is in `THIRD_PARTY_NOTICES.md`.
+- **`PSEK` → `PSE K`.** A final K after strong CW words is split off (`PSEK`, `AGNK`, `HPEK`, `TNXK`); it was blocked by the rules that keep plain words whole. `GEEK`, `BACK`, `TANK` stay whole.
+- **Smaller app.** The text handling (word spacing, callsigns, the app itself) is now built for size and the settings buffer lives on the stack: 44 KB of code and 9.5 KB of variables instead of about 51 KB and 13.6 KB, so the app, its variables and its stack fit the 80 KiB app window of the IC-705 (and the 76 KiB of the IC-9700) with room to spare. The decoder itself is still built for speed.
+- **QSO partner labels.** Often only one side sends both calls (`IN3TWX DE G3PQD`). A station with no callsign of its own, within 100 Hz of a station in a QSO heard in the last 2 minutes, is now labelled as the other side: `IN3TWX>G3PQD`. Checked on recordings of real QSOs: both sides of three QSOs are now labelled correctly (G3PQD/IN3TWX, ON6FT/ON6IIT, YP40CSM/IK1YRA).
+
 ## 2026-11-23 — word spacing in ragchew QSOs
 
 ### Improvements

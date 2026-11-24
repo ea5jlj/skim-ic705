@@ -109,7 +109,8 @@ static void read_cfg(void)
 {
     int fd = icap_open("SKIM.CFG", ICAP_O_READ);
     if (fd < 0) return;
-    static char buf[4096];                  /* SKIM.CFG with its comments is ~2.5 KB */
+    char buf[3072];                         /* SKIM.CFG with its comments is ~2.5 KB; on the
+                                               stack, which is free at start, not in BSS */
     int n = icap_read(fd, buf, sizeof buf - 1);
     icap_close(fd);
     if (n <= 0) return;
@@ -224,7 +225,13 @@ static int radio_mode = RMODE_CW;
  * changes when the dial moves): each keeps its callsign, CQ and QSO state. A
  * decoder channel points to the station it is hearing right now. */
 #define NSTN 16
-#define STN_TOL 80                      /* Hz: same station if closer than this */
+#ifndef STN_TOL
+#define STN_TOL 20                      /* Hz: same station if closer than this. The two sides
+                                           of a QSO are often only 20-30 Hz apart (G3PQD 601 Hz,
+                                           IN3TWX 574 Hz); one station's tone varies by ±3 Hz */
+#endif
+#define PAIR_HZ 100                     /* a QSO partner is within this... */
+#define PAIR_MS 120000u                 /* ...and was heard in the last 2 minutes */
 static struct { int32_t key; uint32_t last; int used; cs_t cs; } stn[NSTN];
 static int ch_st[CWD_MAXCH];
 
@@ -266,6 +273,27 @@ static int station_for(int32_t key, uint32_t now)
 
 #define CS(k) (&stn[ch_st[k]].cs)
 static const char *chan_call(int k) { return cfg.calls ? cs_best(CS(k)) : ""; }
+
+/* Label of channel k's station: its callsign and the station it works. Two
+ * stations in a QSO are usually within a few tens of Hz, and often only one
+ * of them sends both calls ("IN3TWX DE G3PQD"). A station with no callsign of
+ * its own, close to one in a QSO, is that QSO's other side: IN3TWX>G3PQD. */
+static void chan_label(int k, const char **call, const char **peer)
+{
+    *call = chan_call(k);
+    *peer = cfg.calls ? cs_peer(CS(k)) : "";
+    if (!cfg.calls || (*call)[0]) return;
+    int me = ch_st[k];
+    uint32_t now = icap_ticks();
+    for (int i = 0; i < NSTN; i++) {
+        if (i == me || !stn[i].used || now - stn[i].last > PAIR_MS) continue;
+        int32_t dd = stn[i].key - stn[me].key;
+        if (dd < 0) dd = -dd;
+        if (dd > PAIR_HZ) continue;
+        const char *b = cs_best(&stn[i].cs), *q = cs_peer(&stn[i].cs);
+        if (b[0] && q[0] && !cs_cq(&stn[i].cs)) { *call = q; *peer = b; return; }
+    }
+}
 
 /* Removes typical noise from a phrase: words made only of E, T and *, short
  * runs of stray dots (EI, IE, II…), and the * of unrecognized characters
@@ -364,11 +392,11 @@ static void send_line(int k, float tone)
     if (cfg.pitch > 0 && ch[k].dial_hz && radio_mode == RMODE_CW) p = sfreq_station(p, ch[k].dial_hz, tone);
     else p = sint(p, (int)(tone + 0.5f), 4);      /* not in CW: the tone, not a wrong frequency */
     *p++ = ' ';
-    const char *call = chan_call(k);
+    const char *call, *peer;
+    chan_label(k, &call, &peer);
     if (call[0]) {
-        if (cfg.calls && cs_cq(CS(k))) p = scpy(p, "CQ ");    /* only with a callsign: a bare "CQ" reads as text */
+        if (cfg.calls && cs_cq(CS(k)) && call == chan_call(k)) p = scpy(p, "CQ ");    /* only with a callsign: a bare "CQ" reads as text */
         p = scpy(p, call);
-        const char *peer = cfg.calls ? cs_peer(CS(k)) : "";
         if (peer[0]) { *p++ = '>'; p = scpy(p, peer); }
         *p++ = ':'; *p++ = ' ';
     }
@@ -401,8 +429,9 @@ static void add_text(int k, const char *s, float tone, uint32_t now)
     }
     ch[k].tone = tone;
     /* prefix: "7029.9 CQ CALL>PEER: " */
-    int pre = 7 + (chan_call(k)[0] ? slen(chan_call(k)) + 2 + (cs_cq(CS(k)) ? 3 : 0) : 0)
-            + (cs_peer(CS(k))[0] ? slen(cs_peer(CS(k))) + 1 : 0);
+    const char *lc, *lp;
+    chan_label(k, &lc, &lp);
+    int pre = 7 + (lc[0] ? slen(lc) + 2 + (cs_cq(CS(k)) ? 3 : 0) : 0) + (lp[0] ? slen(lp) + 1 : 0);
     int maxl = cfg.dcols - pre;
     if (maxl < 12) maxl = 12;
     if (maxl > (int)sizeof ch[k].line - 1) maxl = (int)sizeof ch[k].line - 1;
@@ -583,6 +612,29 @@ static void draw(cwd_t *d, uint32_t overruns, uint32_t rate_sps, int fonttest)
 
 /* ------------------------------------------------ app */
 
+/* English word list for the word-spacing fix: SKIMDICT.BIN (tools/mkdict.py
+ * --bin) in the Apps folder, read into the memory left after the decoder.
+ * Returns its size, or 0 when there is none (SKIM then works without it). */
+static int load_dict(uint8_t *room, uint32_t room_n)
+{
+    if (!room || room_n < 4 + 677 * 2) return 0;
+    int fd = icap_open("SKIMDICT.BIN", ICAP_O_READ);
+    if (fd < 0) return 0;
+    uint32_t n = 0;
+    for (;;) {
+        int r = icap_read(fd, room + n, room_n - n > 4096 ? 4096 : room_n - n);
+        if (r <= 0) break;
+        n += (uint32_t)r;
+        if (n == room_n) break;
+    }
+    icap_close(fd);
+    const uint16_t *idx = (const uint16_t *)(room + 4);
+    if (n < 4 + 677 * 2 || room[0] != 'S' || room[1] != 'K' || room[2] != 'D' || room[3] != '1' ||
+        4u + 677u * 2u + idx[676] != n) return 0;               /* not ours, or cut short */
+    wd_dict(idx, room + 4 + 677 * 2);
+    return (int)n;
+}
+
 int app_main(const struct icap_svc *svc)
 {
     icap_use(svc);
@@ -597,19 +649,29 @@ int app_main(const struct icap_svc *svc)
     read_cfg();
 
     /* memory: the decoder state goes in the app heap */
+    uint8_t *room = 0; uint32_t room_n = 0;          /* memory left after the decoder (word list) */
 #ifdef SKIM_HOST
     static cwd_t host_dec;                 /* simulator: 64-bit pointers */
+    static uint8_t host_room[32768];
     cwd_t *d = &host_dec;
+    room = host_room; room_n = sizeof host_room;
     if (0) {
 #else
     cwd_t *d = (cwd_t *)icap_heap();
-    if (!d || icap_heap_size() < sizeof(cwd_t)) {
+    if (d && icap_heap_size() >= sizeof(cwd_t)) {
+        room = (uint8_t *)d + ((sizeof(cwd_t) + 7u) & ~7u);
+        room_n = icap_heap_size() - (uint32_t)((sizeof(cwd_t) + 7u) & ~7u);
+    } else {
 #endif
         struct icap_meminfo mi;
         d = 0;
         if (icap_mem_info(&mi) == 0) {
             uint32_t lo = (mi.free_lo + 7u) & ~7u;
-            if (mi.free_hi > lo && mi.free_hi - lo >= sizeof(cwd_t)) d = (cwd_t *)(uintptr_t)lo;
+            if (mi.free_hi > lo && mi.free_hi - lo >= sizeof(cwd_t)) {
+                d = (cwd_t *)(uintptr_t)lo;
+                uint32_t r = (lo + (uint32_t)sizeof(cwd_t) + 7u) & ~7u;
+                if (mi.free_hi > r) { room = (uint8_t *)(uintptr_t)r; room_n = mi.free_hi - r; }
+            }
         }
     }
     if (!d) {
@@ -619,6 +681,8 @@ int app_main(const struct icap_svc *svc)
         while (!icap_should_stop()) icap_sleep_ms(200);
         return 0;
     }
+
+    int dict_bytes = cfg.words ? load_dict(room, room_n) : 0;
 
     cwd_cfg_t c; cwd_default_cfg(&c);
     c.mode = cfg.mode;
@@ -668,6 +732,10 @@ int app_main(const struct icap_svc *svc)
             char m[8];
             if (icap_mode(m, sizeof m) > 0) { q = scpy(q, " (started with the mode button: "); q = scpy(q, m); *q++ = ')'; }
             else q = scpy(q, " (started from autostart or the Apps menu)");
+            *q++ = '\r'; *q++ = '\n';
+            icap_write(log_fd, h, (uint32_t)(q - h));
+            q = scpy(h, dict_bytes > 0 ? "# word list: SKIMDICT.BIN, " : "# word list: none (SKIMDICT.BIN not found)");
+            if (dict_bytes > 0) { q = sint(q, dict_bytes, 0); q = scpy(q, " bytes"); }
             *q++ = '\r'; *q++ = '\n';
             icap_write(log_fd, h, (uint32_t)(q - h));
         }

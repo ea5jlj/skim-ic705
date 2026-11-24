@@ -5,7 +5,7 @@
 #   sh build.sh          both
 #   sh build.sh radio    SKIM.APP only   (needs arm-none-eabi-gcc and python3)
 #   sh build.sh sim      simulator only  (host C compiler: $CC or cc)
-#   sh build.sh release  like `all`, then copies SKIM.APP and SKIM.CFG into ../app/
+#   sh build.sh release  like `all`, then copies SKIM.APP, SKIM.CFG and SKIMDICT.BIN into ../app/
 # The SQ6EMM SDK is taken from $ICAP_SDK (default ~/dev/icap-sdk).
 set -e
 cd "$(dirname "$0")"
@@ -23,9 +23,11 @@ if [ "$STEP" = all ] || [ "$STEP" = radio ] || [ "$STEP" = release ]; then
   LF="-nostdlib -T $T/app.ld -Wl,--emit-relocs -Wl,--no-dynamic-linker"
   $GCC $CF -c $T/icap_start.S -o $B/icap_start.o
   $GCC $DF -c ../src/cwdec.c -o $B/cwdec.o
-  $GCC $DF -c ../src/callsign.c -o $B/callsign.o
-  $GCC $DF -c ../src/words.c -o $B/words.o
-  $GCC $DF -c skim.c -o $B/skim.o
+  # text handling and the app itself are not in the audio path: optimised for
+  # size, so image + BSS + stack fit the 80 KiB app window with room to spare
+  $GCC $DF -Os -c ../src/callsign.c -o $B/callsign.o
+  $GCC $DF -Os -c ../src/words.c -o $B/words.o
+  $GCC $DF -Os -c skim.c -o $B/skim.o
   $GCC $CF $LF $B/icap_start.o $B/skim.o $B/cwdec.o $B/callsign.o $B/words.o -lgcc -o $B/skim.elf
   # nothing external: everything must be inside the app
   if ${GCC%gcc}nm -u $B/skim.elf | grep -q .; then
@@ -41,7 +43,7 @@ if [ "$STEP" = all ] || [ "$STEP" = sim ] || [ "$STEP" = release ]; then
 fi
 if [ "$STEP" = release ]; then
   mkdir -p ../app
-  cp $B/SKIM.APP SKIM.CFG ../app/
+  cp $B/SKIM.APP SKIM.CFG SKIMDICT.BIN ../app/
   echo "app/ updated:"
   (cd ../app && (shasum -a 256 SKIM.APP 2>/dev/null || sha256sum SKIM.APP))
 fi

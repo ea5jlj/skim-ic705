@@ -4,11 +4,13 @@
  * the lines it changes. Reads SKIMnn.LOG files (it takes the raw text after
  * "| tone") or plain text lines.
  *
- * usage: wordfix [-a] [-k CALL]... file...   (no file: stdin)
+ * usage: wordfix [-a] [-n] [-k CALL]... file...   (no file: stdin)
  *   -a       print every line, not only the changed ones
+ *   -n       without the English word list (src/dict_en.c)
  *   -k CALL  a callsign to treat as already known (repeatable)
  */
 #include "../src/words.h"
+#include "../src/dict_en.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -45,8 +47,10 @@ static void run(FILE *f)
 int main(int argc, char **argv)
 {
     int files = 0;
+    wd_dict(dict_idx, dict_data);
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-a")) all = 1;
+        else if (!strcmp(argv[i], "-n")) wd_dict(0, 0);
         else if (!strcmp(argv[i], "-k") && i + 1 < argc) { if (nknown < 32) known[nknown++] = argv[++i]; }
         else {
             FILE *f = fopen(argv[i], "r");

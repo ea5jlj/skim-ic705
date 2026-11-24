@@ -139,12 +139,112 @@ static int recognized(const char *p, int n, const char *const *known, int nk)
            is_number(p, n) || call_ok(p, n);
 }
 
+/* ------------------------------------------------ English words */
+
+static const unsigned short *d_idx;            /* set by wd_dict(); 0 = no dictionary */
+static const unsigned char *d_data;
+
+void wd_dict(const unsigned short *idx, const unsigned char *data) { d_idx = idx; d_data = data; }
+
+static int dict_has(const char *p, int n)
+{
+    if (!d_idx || n < 2 || n > 17 || p[0] < 'A' || p[0] > 'Z' || p[1] < 'A' || p[1] > 'Z') return 0;
+    int b = (p[0] - 'A') * 26 + (p[1] - 'A');
+    const unsigned char *q = d_data + d_idx[b], *end = d_data + d_idx[b + 1];
+    char w[16]; int wl = 0;                          /* the word without its first two letters */
+    const char *r = p + 2; int rl = n - 2;
+    while (q < end) {
+        int keep = *q >> 4, add = *q & 15; q++;
+        wl = keep;
+        for (int i = 0; i < add; i++) w[wl++] = (char)q[i];
+        q += add;
+        if (wl == rl) {
+            int eq = 1;
+            for (int i = 0; i < rl; i++) if (w[i] != r[i]) { eq = 0; break; }
+            if (eq) return 1;
+        }
+    }
+    return 0;
+}
+
+static int is_word(const char *p, int n) { return dict_has(p, n) || vocab_find(p, n) >= 0; }
+
+/* CW abbreviations of 3+ letters that do not hide inside English words: a
+ * glued token is split into English words only around one of them (or a
+ * number), so plain words such as COWBOYS or OFFBEAT stay whole */
+static int anchor(const char *p, int n)
+{
+    if (n < 3 || vocab_find(p, n) != 1) return 0;
+    static const char *const no[] = { "ANT", "RIG", "TEST", "NAME", "CUL", "MNI", "AGN", "XYL", "GUD",
+                                      "PSE", "RST", "RPT", 0 };
+    for (int i = 0; no[i]; i++) if (same(p, n, no[i])) return 0;
+    return 1;
+}
+
+/* "TH" + "ERE" → "THERE": two pieces that make a common word, when they are
+ * not both words already ("IN TO" stays) and none is a single letter */
+static int dict_join(const char *a, int na, const char *b, int nb)
+{
+    char t[TOKMAX + 1];
+    if (na < 2 || nb < 2 || na + nb > TOKMAX) return 0;
+    for (int i = 0; i < na; i++) { if (!is_al(a[i])) return 0; t[i] = a[i]; }
+    for (int i = 0; i < nb; i++) { if (!is_al(b[i])) return 0; t[na + i] = b[i]; }
+    if (is_word(a, na) && is_word(b, nb)) return 0;
+    return dict_has(t, na + nb);
+}
+
+/* A glued phrase split into English words and CW words, fewest pieces first:
+ * "HPECUINPERSON" → "HPE CU IN PERSON", "THEMEETINGSDRDEREK" → "THE MEETINGS
+ * DR DEREK" (a name may end it after DR, NAME or QTH). Only with an anchor
+ * word or a number among the pieces. Returns the length written to o, or 0. */
+static int dict_split(const char *p, int n, char *o)
+{
+    if (n < 6 || n > TOKMAX || is_word(p, n) || call_ok(p, n)) return 0;
+    for (int i = 0; i < n; i++) if (!is_al(p[i]) && !is_dg(p[i])) return 0;
+    int np[TOKMAX + 1], from[TOKMAX + 1], anc[TOKMAX + 1], last[TOKMAX + 1];
+    for (int i = 0; i <= n; i++) np[i] = -1;
+    int one[TOKMAX + 1], lng[TOKMAX + 1];            /* so far: a one-letter piece, a 4+ letter word */
+    np[0] = 0; anc[0] = 0; last[0] = -1; one[0] = 0; lng[0] = 0;
+    for (int i = 1; i <= n; i++) {
+        for (int j = (i > 16 ? i - 16 : 0); j < i; j++) {
+            if (np[j] < 0) continue;
+            int m = i - j, tail = 0;
+            int ok = (m >= 2 && is_word(p + j, m)) || is_number(p + j, m) ||
+                     (m == 1 && (p[j] == 'A' || p[j] == 'I'));
+            if (!ok && i == n && m >= 4 && np[j] >= 3 && last[j] >= 0 && !one[j] && lng[j]) {
+                int a = last[j];                     /* the piece before: DR, NAME or QTH */
+                if (same(p + a, j - a, "DR") || same(p + a, j - a, "NAME") || same(p + a, j - a, "QTH")) {
+                    int al = 1;
+                    for (int k = j; k < i; k++) if (!is_al(p[k])) al = 0;
+                    ok = tail = al;
+                }
+            }
+            if (!ok) continue;
+            if (np[i] < 0 || np[j] + 1 < np[i]) {
+                np[i] = np[j] + 1; from[i] = j; last[i] = j; one[i] = one[j] | (m == 1);
+                lng[i] = lng[j] | (m >= 4 && !tail);
+                anc[i] = anc[j] | anchor(p + j, m) | is_number(p + j, m) | tail;
+            }
+        }
+    }
+    if (np[n] < 2 || !anc[n]) return 0;
+    int cut[TOKMAX + 1], nc = 0;
+    for (int i = n; i > 0; i = from[i]) cut[nc++] = i;
+    int on = 0, a = 0;
+    for (int c = nc - 1; c >= 0; c--) {
+        if (on) o[on++] = ' ';
+        for (int i = a; i < cut[c]; i++) o[on++] = p[i];
+        a = cut[c];
+    }
+    return on;
+}
+
 /* Best split of a token into recognized pieces. Writes it to o (pieces
  * separated by spaces) and returns its length, or 0 if it is left alone. */
 static int split(const char *p, int n, char *o, const char *const *known, int nk, int next)
 {
     /* only callsigns known from outside the line protect a whole token */
-    if (n < 4 || n > TOKMAX || known_find(p, n, known, next)) return 0;
+    if (n < 4 || n > TOKMAX || known_find(p, n, known, next) || dict_has(p, n)) return 0;
     int as_call = call_ok(p, n);          /* may still be a known call + a word: OS5ZK */
     if (!as_call && recognized(p, n, known, nk)) return 0;
     for (int i = 0; i < n; i++) if (!is_al(p[i]) && !is_dg(p[i])) return 0;
@@ -202,7 +302,9 @@ static int split(const char *p, int n, char *o, const char *const *known, int nk
      * ones next to them, no one-letter pieces, a token of 6+ letters and fewer
      * short English words than strong ones, so plain language stays whole:
      * "TNXFERCALL" splits; "TOGETHER", "HIDE", "DETOUR", "FORGE" do not */
-    if (top[n][e] < 2 && weak[n][e] > 0 &&
+    /* the one exception: strong CW words and a final K ("PSEK" → "PSE K") */
+    int k_end = p[n - 1] == 'K' && from[n][e] == n - 1 && weak[n][e] == 1 && strg[n][e] >= 1 && !eng[n][e];
+    if (top[n][e] < 2 && weak[n][e] > 0 && !k_end &&
         (strg[n][e] < 1 || one[n][e] || weak[n][e] > 2 * strg[n][e] || n < 6 ||
          eng[n][e] >= strg[n][e] || (eng[n][e] && n <= 6))) return 0;
     /* an unknown tail only after two known words, one of them strong */
@@ -298,10 +400,16 @@ static int pass(const char *in, char *out, int max, const char *const *known, in
             for (int k = 0; k < wn[i + 1]; k++) joined[wn[i] + k] = ws[i + 1][k];
             p = joined; m = wn[i] + wn[i + 1];
             i++;
+        } else if (i + 1 < n && dict_join(ws[i], wn[i], ws[i + 1], wn[i + 1])) {
+            for (int k = 0; k < wn[i]; k++) joined[k] = ws[i][k];
+            for (int k = 0; k < wn[i + 1]; k++) joined[wn[i] + k] = ws[i + 1][k];
+            p = joined; m = wn[i] + wn[i + 1];
+            i++;
         }
         int q = 0;                                   /* "HW?", "QRL??": split what comes before */
         while (q < m && p[m - 1 - q] == '?') q++;
         int sm = split(p, m - q, buf, known, nk, next);
+        if (!sm) sm = dict_split(p, m - q, buf);
         if (sm) { for (int k = 0; k < q; k++) buf[sm++] = '?'; p = buf; m = sm; }
         if (on && on < max - 1) out[on++] = ' ';
         for (int k = 0; k < m && on < max - 1; k++) out[on++] = p[k];
